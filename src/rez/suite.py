@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from rez.utils.execution import create_forwarding_script
+from rez.utils.filesystem import real_path, resolve_path
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
 from rez.utils.data_utils import cached_property
@@ -458,14 +459,31 @@ class Suite(object):
                 at `path`, then it will be overwritten. Otherwise, if `path`
                 exists, an error is raised.
         """
-        path = os.path.realpath(path)
+        # Resolve symlinks/junctions ONCE, up front, so that deletion and
+        # recreation below operate on the same physical destination. Mixing
+        # representations (deleting the resolved target but recreating
+        # through an alias) would strand the suite and make makedirs fail
+        # on a dangling link. On Windows, resolution honours
+        # resolve_links_on_windows and preserves drive-letter form (no UNC
+        # expansion).
+        path = resolve_path(path)
         if os.path.exists(path):
-            if self.load_path and self.load_path == path:
+            is_same_suite = False
+            if self.load_path:
+                # Use samefile() instead of raw string comparison so that
+                # symlinks, junctions, and case-only differences on Windows
+                # are handled correctly.
+                try:
+                    is_same_suite = os.path.samefile(self.load_path, path)
+                except OSError:
+                    is_same_suite = (self.load_path == path)
+
+            if is_same_suite:
                 if verbose:
                     print("saving over previous suite...")
                 for context_name in self.context_names:
                     self.context(context_name)  # load before dir deleted
-                safe_rmtree(path)
+                safe_rmtree(path)  # path is already resolved (see above)
             else:
                 raise SuiteError("Cannot save, path exists: %r" % path)
 
@@ -528,7 +546,7 @@ class Suite(object):
             raise SuiteError("Failed loading suite: %s" % str(e))
 
         s = cls.from_dict(data)
-        s.load_path = os.path.realpath(path)
+        s.load_path = real_path(path)
         return s
 
     @classmethod

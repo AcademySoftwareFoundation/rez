@@ -3,7 +3,7 @@
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
-SPHINXOPTS    ?= -n
+SPHINXOPTS    ?= -n -j auto
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = source
 BUILDDIR      = _build
@@ -20,9 +20,10 @@ help:
 	$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 livehtml:
-	sphinx-autobuild "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	sphinx-autobuild "$(SOURCEDIR)" "$(BUILDDIR)" --watch ../src/rez --watch ../CHANGELOG.md --re-ignore '/src/rez/(?!.*\.py$$)' $(SPHINXOPTS) $(O)
 
 clean:
 	rm -rf _build
 	rm -rf source/api
+	rm -rf source/apivendor
 	rm -rf source/commands

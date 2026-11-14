@@ -6,6 +6,7 @@
 Functions for converting python distributions to rez packages.
 """
 from rez.exceptions import RezSystemError
+from rez.utils.filesystem import real_path, is_subdirectory
 import importlib.metadata as importlib_metadata
 import shutil
 import sys
@@ -190,16 +191,28 @@ def convert_dist(name, dest_path, make_variant: bool = True, ignore_dirs=None,
             with open(file) as f:
                 installed_files = f.read().strip().split()
 
+            # Compose paths against the SAME path form used for the entries
+            # below. Entries are real_path'd, so the location must be too: if
+            # the location were canonicalised instead (which resolves links
+            # AND lowercases on case-insensitive filesystems), relpath()
+            # would generate ".." components - files would either be dropped
+            # (containment check) or copied OUTSIDE the package root (relpath
+            # composition). real_path keeps both operands in matching,
+            # case-preserving form on every platform; the containment check
+            # below still canonicalises internally, so link/case resolution
+            # is correctly handled there.
+            loc = real_path(dist.location)
+
             dirs = set()
             files = set()
             for file in installed_files:
                 path = os.path.join(eggpath, file)
-                path = os.path.realpath(path)
+                path = real_path(path)
 
-                if os.path.isfile(path) and path.startswith(dist.location + os.sep):
+                if os.path.isfile(path) and is_subdirectory(path, loc):
                     dir_ = os.path.dirname(path)
                     if ignore_dirs:
-                        reldir = os.path.relpath(dir_, dist.location)
+                        reldir = os.path.relpath(dir_, loc)
                         if set(reldir.split(os.sep)) & set(ignore_dirs):
                             continue
 
@@ -207,9 +220,9 @@ def convert_dist(name, dest_path, make_variant: bool = True, ignore_dirs=None,
                     dirs.add(dir_)
 
             def _dst(p):
-                dst = os.path.relpath(p, dist.location)
+                dst = os.path.relpath(p, loc)
                 dst = os.path.join(root_path, dst)
-                return os.path.realpath(dst)
+                return real_path(dst)
 
             for dir_ in dirs:
                 dst_dir = _dst(dir_)

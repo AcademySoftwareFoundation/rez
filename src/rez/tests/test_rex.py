@@ -5,18 +5,20 @@
 """
 test the rex command generator API
 """
-from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
-    Comment, Alias, Command, Source, Error, Shebang, Unsetenv, expandable, \
-    literal
+from rez.rex import RexExecutor, Python, ActionInterpreter, Setenv, Appendenv, \
+    Prependenv, Info, Comment, Alias, Command, Source, Error, Shebang, Unsetenv, \
+    expandable, literal
 from rez.rex_bindings import VersionBinding, VariantBinding, VariantsBinding, \
     RequirementsBinding, EphemeralsBinding, intersects
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.config import config
 import unittest
+from unittest import mock
 from rez.version import Version
 from rez.version import Requirement
 from rez.tests.util import TestBase
 from rez.utils.backcompat import convert_old_commands
+from rez.utils.platform_ import platform_
 from rez.package_repository import package_repository_manager
 from rez.packages import iter_package_families
 import inspect
@@ -546,6 +548,137 @@ class TestRex(TestBase):
         ephemerals = EphemeralsBinding([])
         self.assertRaises(RuntimeError,  # no default
                           intersects, ephemerals.get_range("foo.bar"), "0")
+
+    def test_case_insensitive_environ_proxy(self) -> None:
+        """Unit-test the case-normalizing proxy directly (platform independent).
+
+        Runs on every host so the core logic behind the #2089 fix has real
+        CI coverage even though the ActionManager wiring is Windows-only.
+        """
+        from rez.rex import _CaseInsensitiveEnvironProxy
+
+        proxy = _CaseInsensitiveEnvironProxy({"SomeVariable": "covfefe"})
+        for key in ("SomeVariable", "SOMEVARIABLE", "somevariable"):
+            self.assertEqual(proxy[key], "covfefe")
+            self.assertIn(key, proxy)
+        self.assertNotIn("OtherVariable", proxy)
+        self.assertRaises(KeyError, lambda: proxy["OtherVariable"])
+
+        # copy() yields a plain dict with normalized (upper-cased) keys,
+        # mirroring os.environ.copy() on Windows.
+        copied = proxy.copy()
+        self.assertIsInstance(copied, dict)
+        self.assertEqual(copied, {"SOMEVARIABLE": "covfefe"})
+
+        # normalized iteration / length
+        self.assertEqual(len(proxy), 1)
+        self.assertEqual(set(proxy), {"SOMEVARIABLE"})
+
+        # last-write-wins on case collision, mirroring os.environ
+        collided = _CaseInsensitiveEnvironProxy({"Foo": "a", "FOO": "b"})
+        self.assertEqual(collided["foo"], "b")
+
+    @unittest.skipIf(platform_.name == "windows",
+                     "parent_environ passthrough is non-Windows behaviour")
+    def test_parent_environ_identity_passthrough_on_non_windows(self) -> None:
+        """On non-Windows, a caller dict is used as-is (no wrapping). #2089."""
+        parent_env = {"SomeVariable": "covfefe"}
+        ex = self._create_executor(parent_env)
+        self.assertIs(ex.manager.parent_environ, parent_env)
+
+    @unittest.skipIf(platform_.name != "windows", "Windows-only behaviour")
+    def test_parent_environ_case_insensitive_on_windows(self) -> None:
+        """Regression for #2089.
+
+        On Windows env vars are case-insensitive; os.environ already
+        behaves that way, but a plain dict copy of it doesn't. Passing
+        such a dict as parent_environ used to break env.<MixedCase>
+        lookups inside commands(). We now wrap on the Windows side.
+        """
+        parent_env = {"SomeVariable": "covfefe"}
+        ex = self._create_executor(parent_env)
+
+        # any casing of the key resolves
+        self.assertEqual(ex.manager.parent_environ["SomeVariable"], "covfefe")
+        self.assertEqual(ex.manager.parent_environ["SOMEVARIABLE"], "covfefe")
+        self.assertEqual(ex.manager.parent_environ["somevariable"], "covfefe")
+        self.assertIn("SOMEVARIABLE", ex.manager.parent_environ)
+        self.assertNotIn("OtherVariable", ex.manager.parent_environ)
+
+        # end-to-end via the real package-commands entrypoint: rex references
+        # a different casing than the caller's dict, exercised through both
+        # execute_function and execute_code (what commands() actually run).
+        # Pre-fix this raised RexUndefinedVariableError. Note: the caller dict
+        # is named `parent_env`, not `env`, so the nested rex function does not
+        # close over it and shadow the rex `env` builtin.
+        def _rex() -> None:
+            env.RESULT = env.SOMEVARIABLE  # noqa: F821 - rex builtin
+
+        self._test(
+            func=_rex,
+            env=parent_env,
+            expected_actions=[Setenv("RESULT", "covfefe")],
+            expected_output={"RESULT": "covfefe"},
+        )
+
+    def test_parent_environ_os_environ_passthrough(self) -> None:
+        """Explicit os.environ is used as-is (identity), never wrapped or
+        copied -- it is already case-insensitive on Windows. #2089.
+        """
+        ex = self._create_executor(os.environ)
+        self.assertIs(ex.manager.parent_environ, os.environ)
+
+    @mock.patch.object(platform_, "name", "windows")
+    def test_parent_environ_case_insensitive_windows_mocked(self) -> None:
+        """Companion to test_parent_environ_case_insensitive_on_windows that
+        runs on every host by mocking the platform, so the Windows-only
+        wrapping branch keeps CI coverage (and local validation) off Windows
+        too. #2089.
+        """
+        from rez.rex import _CaseInsensitiveEnvironProxy
+
+        parent_env = {"SomeVariable": "covfefe"}
+        ex = self._create_executor(parent_env)
+        self.assertIsInstance(
+            ex.manager.parent_environ, _CaseInsensitiveEnvironProxy)
+        self.assertEqual(ex.manager.parent_environ["SOMEVARIABLE"], "covfefe")
+
+        def _rex() -> None:
+            env.RESULT = env.SOMEVARIABLE  # noqa: F821 - rex builtin
+
+        self._test(
+            func=_rex,
+            env=parent_env,
+            expected_actions=[Setenv("RESULT", "covfefe")],
+            expected_output={"RESULT": "covfefe"},
+        )
+
+    def test_is_pathed_key(self):
+        """Test that _is_pathed_key correctly identifies path-like env vars."""
+        self.assertTrue(ActionInterpreter._is_pathed_key("PATH"))
+        self.assertTrue(ActionInterpreter._is_pathed_key("PYTHONPATH"))
+        self.assertTrue(ActionInterpreter._is_pathed_key("LD_LIBRARY_PATH"))
+        self.assertTrue(ActionInterpreter._is_pathed_key("SOMEPATH"))
+
+        self.assertFalse(ActionInterpreter._is_pathed_key("FOO"))
+        self.assertFalse(ActionInterpreter._is_pathed_key("HOME"))
+
+    def test_non_pathed_env_vars(self):
+        """Test that non_pathed_env_vars excludes vars from path normalization."""
+        self.assertFalse(ActionInterpreter._is_pathed_key("CMAKE_MODULE_PATH"))
+
+        self.assertTrue(ActionInterpreter._is_pathed_key("PYTHONPATH"))
+        self.assertTrue(ActionInterpreter._is_pathed_key("PATH"))
+
+        config.override("non_pathed_env_vars", [])
+        self.assertTrue(ActionInterpreter._is_pathed_key("CMAKE_MODULE_PATH"))
+
+    def test_non_pathed_env_vars_wildcard_patterns(self):
+        """Test that wildcard patterns work in non_pathed_env_vars."""
+        config.override("non_pathed_env_vars", ["*CMAKE*"])
+        self.assertFalse(ActionInterpreter._is_pathed_key("CMAKE_MODULE_PATH"))
+        self.assertFalse(ActionInterpreter._is_pathed_key("CMAKE_PREFIX_PATH"))
+        self.assertTrue(ActionInterpreter._is_pathed_key("PYTHONPATH"))  # not excluded
 
 
 if __name__ == '__main__':

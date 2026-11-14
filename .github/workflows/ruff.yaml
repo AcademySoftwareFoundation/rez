@@ -39,3 +39,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Ruff Check
         uses: astral-sh/ruff-action@278981a28ce3188b1e39527901f38254bf3aac89 # v4.1.0
+        with:
+          # Pin the ruff version: without this, the action falls back to
+          # "latest" whenever pyproject.toml has no [tool.ruff] version,
+          # and new ruff releases silently introduce lint drift on main.
+          # See issue #2228. Bump deliberately, with the drift fixed in the
+          # same change.
+          version: "0.16.6"

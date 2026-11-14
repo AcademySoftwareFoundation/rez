@@ -16,6 +16,7 @@ from rez.packages import get_developer_package, Variant
 from rez.utils.platform_ import platform_
 from rez.config import config
 from rez.utils.which import which
+from rez.utils.filesystem import real_path
 from rez.vendor.schema.schema import Or
 from rez.shells import create_shell
 import argparse
@@ -27,6 +28,19 @@ import os
 
 class RezCMakeError(BuildSystemError):
     pass
+
+
+def _normalize_build_path(working_dir: str, build_path: str) -> str:
+    """Return an absolute, form-stable cmake build directory path.
+
+    Relative paths are resolved against `working_dir` and normalised via
+    `real_path` (which on Windows preserves drive-letter vs UNC form,
+    rather than expanding mapped drives the way `os.path.realpath` does).
+    Absolute paths are returned unchanged.
+    """
+    if os.path.isabs(build_path):
+        return build_path
+    return real_path(os.path.join(working_dir, build_path))
 
 
 class CMakeBuildSystem(BuildSystem):
@@ -150,9 +164,7 @@ class CMakeBuildSystem(BuildSystem):
 
         # execute cmake within the build env
         _pr("Executing: %s" % ' '.join(cmd))
-        if not os.path.abspath(build_path):
-            build_path = os.path.join(self.working_dir, build_path)
-            build_path = os.path.realpath(build_path)
+        build_path = _normalize_build_path(self.working_dir, build_path)
 
         actions_callback = functools.partial(
             self._add_build_actions,

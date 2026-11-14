@@ -14,13 +14,15 @@ precedence):
    files are supported, separated by os.pathsep;
 3) The setting is further overriden if it is present in $HOME/.rezconfig,
   UNLESS $REZ_DISABLE_HOME_CONFIG is 1;
-4) The setting is overridden again if the environment variable $REZ_XXX is
+4) The setting can also be overridden by the environment variable
+   $REZ_XXX_JSON, and in this case the string is expected to be a JSON-encoded
+   value;
+5) The setting is overridden again if the environment variable $REZ_XXX is
    present, where XXX is the uppercase version of the setting key. For example,
    "image_viewer" will be overriden by $REZ_IMAGE_VIEWER. List values can be
    separated either with "," or blank space. Dict values are in the form
-   "k1:v1,k2:v2,kn:vn";
-5) The setting can also be overriden by the environment variable $REZ_XXX_JSON,
-   and in this case the string is expected to be a JSON-encoded value;
+   "k1:v1,k2:v2,kn:vn". This form takes precedence if both environment
+   variables are present;
 6) This is a special case applied only during a package build or release. In
    this case, if the package definition file contains a "config" section,
    settings in this section will override all others.
@@ -125,6 +127,28 @@ package_definition_build_python_paths = []
 # For further information, see :ref:`package-definition-sharing-code`.
 package_definition_python_path = None
 
+# On Windows, whether to resolve symbolic links and junction points when
+# normalising filesystem paths (primarily inside
+# :func:`rez.utils.filesystem.canonical_path`).
+#
+# When ``False`` (default), rez normalises separators and ``.``/``..`` components
+# without following symlinks and without expanding mapped drive letters to their
+# UNC equivalents. This preserves the path style supplied by the caller
+# (drive-letter input, drive-letter output, UNC input, UNC output), effectively
+# defaulting to pre-Python-3.8 behaviour of ``os.path.realpath`` on Windows.
+#
+# When ``True``, rez performs a component-by-component walk using
+# ``os.path.islink`` / ``os.readlink``. This resolves actual symlinks and
+# junction points without the drive-letter-to-UNC side-effect that
+# ``os.path.realpath`` introduced in Python 3.8. Useful when package
+# repositories are accessed through directory symlinks or junctions.
+#
+# This setting is a no-op on non-Windows platforms, which always resolve
+# symlinks via ``os.path.realpath``.
+#
+# .. versionadded:: 3.5.0
+resolve_links_on_windows = False
+
 
 ###############################################################################
 # Extensions
@@ -214,7 +238,7 @@ default_relocatable_per_package = None
 #
 # .. code-block:: python
 #
-#    default_relocatable_per_repostitory = {
+#    default_relocatable_per_repository = {
 #        '/svr/packages': False
 #    }
 default_relocatable_per_repository = None
@@ -256,7 +280,7 @@ default_cachable_per_package = None
 #
 # .. code-block:: python
 #
-#    default_cachable_per_repostitory = {
+#    default_cachable_per_repository = {
 #        '/svr/packages': False
 #    }
 default_cachable_per_repository = None
@@ -537,6 +561,17 @@ env_var_separators = {
 # not correctly configured, then your shell may not work correctly.
 pathed_env_vars = [
     "*PATH"
+]
+
+# This setting identifies environment variables that should not have path
+# normalization applied, even if they match a pattern in :data:`pathed_env_vars`.
+# This is useful for variables like ``CMAKE_MODULE_PATH`` which end in ``PATH``
+# but require forward slashes regardless of the shell. Wildcards are supported.
+# Takes priority over :data:`pathed_env_vars`.
+#
+# .. versionadded:: 3.5.0
+non_pathed_env_vars = [
+    "CMAKE_*_PATH"
 ]
 
 # Defines what suites on ``$PATH`` stay visible when a new rez environment is resolved.
@@ -886,12 +921,51 @@ prefix_prompt = True
 # Settings dedicated to plugins
 ###############################################################################
 
-# Settings specific to certain plugin implementations can be found in the
-# "rezconfig" file accompanying that plugin. The settings listed here are
-# common to all plugins of that type.
+# Plugin configuration has two possible levels below ``plugins``:
 #
-# Refer to :ref:`configuring-plugins` for more information.
+# * ``plugins.<plugin_type>.<setting>`` configures the plugin type and applies to
+#   all implementations of that type. These are called *top-level settings* in
+#   :ref:`plugin-types`.
+# * ``plugins.<plugin_type>.<plugin_name>.<setting>`` configures one plugin
+#   implementation.
+#
+# For example, ``plugins.release_vcs.check_tag`` applies to every release VCS,
+# whereas ``plugins.release_vcs.git.allow_no_upstream`` applies only to Git.
+# Only the ``release_vcs`` plugin type currently has built-in top-level settings.
+#
+# Plugin settings are defined as nested mappings in Python or YAML configuration
+# files. Their values can be queried using the full dotted setting path. For
+# example, this Python configuration sets one top-level setting and one
+# Git-specific setting:
+#
+# .. code-block:: python
+#
+#    plugins = {
+#        "release_vcs": {
+#            "check_tag": True,
+#            "git": {
+#                "allow_no_upstream": True
+#            }
+#        }
+#    }
+#
+# The resulting values can be queried with :doc:`rez-config <commands/rez-config>`::
+#
+#    $ rez-config plugins.release_vcs.check_tag
+#
+# All string values in plugin settings can reference properties of the ``system``
+# object, such as ``{system.user}``.
+#
+# Unlike other rez settings, plugin settings cannot be overridden with
+# ``REZ_*`` environment variables. The settings below are provided by rez's
+# built-in plugins. Installed third-party plugins can provide additional
+# settings and defaults.
+#
+# Plugin types and implementations not listed here have no built-in settings.
+#
+# .. include:: _configuring_plugins.rst
 plugins = {}
+
 
 ###############################################################################
 # Misc

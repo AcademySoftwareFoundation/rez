@@ -205,6 +205,12 @@ what environment variables are actually paths. You determine this with the
 variable ending in ``PATH`` will be treated as a filepath or list of filepaths, and any
 set/append/prepend operation on it will cause those values to be path-normalized automatically.
 
+However, some variables match ``*PATH`` but must not be path-normalized. For example,
+``CMAKE_MODULE_PATH`` requires forward slashes regardless of shell, and backslash conversion will
+break CMake. You can exclude variables from normalization using the :data:`non_pathed_env_vars`
+config setting, which takes priority over :data:`pathed_env_vars`. By default,
+``CMAKE_MODULE_PATH`` is already excluded. Both settings support :func:`fnmatch`-style wildcards.
+
 .. warning::
    Avoid using :data:`os.pathsep` or hardcoded lists of paths such as
    ``{root}/foo:{root}/bah``. Doing so can cause your package to be incompatible with some shells or
@@ -247,8 +253,9 @@ Pre Test Commands
 
 Sometimes it's useful to perform some extra configuration in the environment that a package's test
 will run in. You can define the :pkgdef:func:`pre_test_commands` function to do this. It will be invoked just
-before the test is run. As well as the standard :rex:attr:`this` object, a :rex:attr:`test` object is also
-provided to distinguish which test is about to run.
+before the test is run. As well as the standard :rex:attr:`this` object, the :rex:attr:`root` and
+:rex:attr:`base` variables of the package under test, and a :rex:attr:`test` object are also provided
+to distinguish which test is about to run.
 
 A Largish Example
 =================
@@ -304,7 +311,7 @@ Following is a list of the objects and functions available.
 
 .. .. currentmodule:: pkgdefrex
 
-.. rex:function:: alias()
+.. rex:function:: alias(key: str, value: str) -> None
 
    Create a command alias.
 
@@ -477,7 +484,7 @@ Following is a list of the objects and functions available.
       if "foo.cli" in ephemerals:
           info("Foo cli option is being specified!")
 
-.. rex:function:: ephemerals.get_range(name: str, range_: str) -> ~rez.version.VersionRange
+.. rex:function:: ephemerals.get_range(name: str, default: str | None = None) -> ~rez.version.VersionRange | None
 
    Use ``get_range`` to test with the :rex:func:`intersects` function.
    Here, we enable ``foo``'s commandline tools by default, unless explicitly disabled via
@@ -654,7 +661,7 @@ Following is a list of the objects and functions available.
    .. code-block:: python
 
       if "maya" in resolve:
-          info("Maya version is %s", resolve.maya.version)
+          info("Maya version is %s" % resolve.maya.version)
           # ..or resolve["maya"].version
 
 .. rex:attribute:: root
@@ -682,14 +689,25 @@ Following is a list of the objects and functions available.
 
       source("{root}/scripts/init.sh")
 
-.. rex:function:: stop(message: str) -> typing.NoReturn
+.. rex:function:: stop(msg: str, *nargs: typing.Any) -> typing.NoReturn
 
    Raises an exception and stops a resolve from completing. You should use this when an unrecoverable
    error is detected and it is not possible to configure a valid environment.
 
+   Optional ``nargs`` values are interpolated into ``msg`` using Python ``%``-style formatting before
+   ``RexStopError`` is raised. The placeholders in ``msg`` must be compatible with the supplied values.
+
+   ``msg`` can be a ``%s``-style templated string. Each variable must be passed as positional
+   arguments:
+
    .. code-block:: python
 
+      expected_value = 42
       stop("The value should be %s", expected_value)
+
+   .. code-block:: python
+
+      stop("another %s message %s", "awesome", "here")
 
 .. rex:attribute:: system
    :type: ~rez.system.System

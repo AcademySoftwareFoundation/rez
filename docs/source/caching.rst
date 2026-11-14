@@ -150,8 +150,8 @@ as shown below:
    platform-linux      /home/ajohns/package_cache/platform/linux/9d4d/a                                  (cached)
    python-3.7.4        /home/ajohns/package_cache/python/3.7.4/ce1c/a                                    (cached)
 
-For reference, cached packages also have their original payload location stored to
-an environment variable like so:
+For reference, the original payload location for each cached package is stored in
+:envvar:`REZ_(PKG)_ORIG_ROOT`:
 
 .. code-block:: console
 

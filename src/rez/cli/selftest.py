@@ -11,6 +11,7 @@ import os
 import sys
 import inspect
 import argparse
+import importlib.util
 from rez.utils.filesystem import safe_rmtree
 from pkgutil import iter_modules
 
@@ -62,7 +63,10 @@ def setup_parser(parser, completions: bool = False):
         importer = cast(PathEntryFinder, importer)
 
         if not ispkg and name.startswith(prefix):
-            module = importer.find_spec(name).loader.load_module(name)
+            spec = importer.find_spec(name)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[name] = module
+            spec.loader.exec_module(module)
             name_ = name[len(prefix):]
             all_module_tests.append(name_)
             tests.append((name_, module))

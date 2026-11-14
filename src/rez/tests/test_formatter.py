@@ -43,12 +43,12 @@ class TestFormatter(TestBase):
         self.assert_formatter_equal('a{{b', 'a{b')
 
         # examples from the PEP:
-        import datetime
+        import datetime as dt
         self.assert_formatter_equal("My name is {0}", "My name is Fred", 'Fred')
         self.assert_formatter_equal("My name is {0[name]}", "My name is Fred", dict(name='Fred'))
         self.assert_formatter_equal("My name is {0} :-{{}}", "My name is Fred :-{}", 'Fred')
 
-        d = datetime.date(2007, 8, 18)
+        d = dt.date(2007, 8, 18)
         self.assert_formatter_equal("The year is {0.year}", "The year is 2007", d)
 
         # classes we'll use for testing
@@ -100,7 +100,7 @@ class TestFormatter(TestBase):
             def __format__(self, format_spec) -> str:
                 return 1.0
 
-        class I(datetime.date):
+        class I(dt.date):
             def __format__(self, format_spec) -> str:
                 return self.strftime(format_spec)
 
