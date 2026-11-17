@@ -326,6 +326,30 @@ class TestConfig(TestBase):
 
             self.assertEqual(config.image_viewer, "plain")
 
+    def test_default_cachable_per_repository_keys_canonicalised(self) -> None:
+        """Raw paths as default_cachable_per_repository keys are canonicalised by rez."""
+        conf = os.path.join(self.config_path, "canonical_keys.py")
+        c = Config([self.root_config_file, conf], locked=True)
+        self.assertEqual(
+            c.default_cachable_per_repository,
+            {"/mnt/repo": True, "/mnt/other": False},
+        )
+
+        # idempotent: already-canonical keys are unchanged. Note override()
+        # merges dict values (deep_update) with the config-file value.
+        c.override("default_cachable_per_repository", {"/mnt/repo": True})
+        self.assertEqual(
+            c.default_cachable_per_repository,
+            {"/mnt/repo": True, "/mnt/other": False},
+        )
+
+        # the relocatable sibling setting has the same canonical-key
+        # semantics (it is consumed identically: .get(repository.location))
+        self.assertEqual(
+            c.default_relocatable_per_repository,
+            {"/mnt/repo": True},
+        )
+
     def test_11_all_settings_declare_environment_variable_support(self) -> None:
         """Test that env_var_json_only and _parse_env_var are aligned and agree.
 
