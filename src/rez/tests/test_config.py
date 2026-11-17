@@ -11,6 +11,7 @@ from rez.exceptions import ConfigurationError
 from rez.config import Config, get_module_root_config, _replace_config, _Deprecation, Setting
 from rez.system import system
 from rez.utils.data_utils import RO_AttrDictWrapper
+from rez.utils.filesystem import canonical_path
 from rez.packages import get_developer_package
 from rez.deprecations import RezDeprecationWarning, warn
 import os
@@ -330,25 +331,55 @@ class TestConfig(TestBase):
         """Raw paths as default_cachable_per_repository keys are canonicalised by rez."""
         conf = os.path.join(self.config_path, "canonical_keys.py")
         c = Config([self.root_config_file, conf], locked=True)
+
+        # keys are canonicalised with the same function rez uses for
+        # repository locations - platform-native separators, drive-anchored
+        # absolute form, lowercased on case-insensitive filesystems
+        value = c.default_cachable_per_repository
         self.assertEqual(
-            c.default_cachable_per_repository,
-            {"/mnt/repo": True, "/mnt/other": False},
+            value,
+            {
+                canonical_path("/mnt/./repo/"): True,
+                canonical_path("/mnt/other"): False,
+            },
         )
 
-        # idempotent: already-canonical keys are unchanged. Note override()
-        # merges dict values (deep_update) with the config-file value.
+        # idempotent: already-canonical keys are unchanged (the override's
+        # posix-form key canonicalises to the same key as the file's). Note
+        # override() merges dict values (deep_update) with the config-file
+        # value.
         c.override("default_cachable_per_repository", {"/mnt/repo": True})
         self.assertEqual(
             c.default_cachable_per_repository,
-            {"/mnt/repo": True, "/mnt/other": False},
+            {
+                canonical_path("/mnt/repo"): True,
+                canonical_path("/mnt/other"): False,
+            },
         )
 
         # the relocatable sibling setting has the same canonical-key
         # semantics (it is consumed identically: .get(repository.location))
         self.assertEqual(
             c.default_relocatable_per_repository,
-            {"/mnt/repo": True},
+            {canonical_path("/mnt/./repo/"): True},
         )
+
+    def test_reentrant_config_access_during_evaluation(self) -> None:
+        """Settings read during config evaluation are served defaults.
+
+        A config file that accesses a setting during its own evaluation
+        (directly, or via rez APIs such as canonical_path on Windows) must
+        not recurse: the nested read sees shipped defaults, the load
+        completes, and the file's own values apply afterwards.
+        """
+        conf = os.path.join(self.config_path, "reentrant_access.py")
+        c = Config([self.root_config_file, conf], locked=True)
+
+        # the file's own value wins after the load
+        self.assertEqual(c.warn_all, True)
+        # the nested read during evaluation saw the shipped default (False),
+        # not a crash and not the file's own (not-yet-applied) value
+        self.assertEqual(c.optionvars, {"warn_all_seen_during_eval": False})
 
     def test_11_all_settings_declare_environment_variable_support(self) -> None:
         """Test that env_var_json_only and _parse_env_var are aligned and agree.
