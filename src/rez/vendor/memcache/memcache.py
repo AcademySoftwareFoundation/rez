@@ -45,9 +45,9 @@ More detailed documentation is available in the L{Client} class.
 
 """
 
-from __future__ import print_function
 
 import binascii
+from datetime import timedelta
 from io import BytesIO
 import re
 import socket
@@ -56,17 +56,13 @@ import threading
 import time
 import zlib
 
-from rez.vendor.six import six
-
-if six.PY2:
-    # With Python 2, the faster C implementation has to be imported explicitly.
-    import cPickle as pickle
-else:
-    import pickle
+import pickle
 
 
 def cmemcache_hash(key):
-    return (((binascii.crc32(key) & 0xffffffff) >> 16) & 0x7fff) or 1
+    return ((binascii.crc32(key) & 0xffffffff) >> 16) & 0x7fff
+
+
 serverHashFunction = cmemcache_hash
 
 
@@ -80,8 +76,8 @@ valid_key_chars_re = re.compile(b'[\x21-\x7e\x80-\xff]+$')
 
 
 #  Original author: Evan Martin of Danga Interactive
-__author__ = "Sean Reifschneider <jafo-memcached@tummy.com>"
-__version__ = "1.59"
+__author__ = "Sean Reifschneider <jafo00@gmail.com>"
+__version__ = "1.62"
 __copyright__ = "Copyright (C) 2003 Danga Interactive"
 #  http://en.wikipedia.org/wiki/Python_Software_Foundation_License
 __license__ = "Python Software Foundation License"
@@ -163,7 +159,8 @@ class Client(threading.local):
                  pload=None, pid=None,
                  server_max_key_length=None, server_max_value_length=None,
                  dead_retry=_DEAD_RETRY, socket_timeout=_SOCKET_TIMEOUT,
-                 cache_cas=False, flush_on_reconnect=0, check_keys=True):
+                 cache_cas=False, flush_on_reconnect=0, check_keys=True,
+                 key_encoder=None):
         """Create a new Client object with the given list of servers.
 
         @param servers: C{servers} is passed to L{set_servers}.
@@ -206,8 +203,12 @@ class Client(threading.local):
         @param check_keys: (default True) If True, the key is checked
         to ensure it is the correct length and composed of the right
         characters.
+        @param key_encoder: (default None) If provided a functor that will
+        be called to encode keys before they are checked and used. It will
+        be expected to take one parameter (the key) and return a new encoded
+        key as a result.
         """
-        super(Client, self).__init__()
+        super().__init__()
         self.debug = debug
         self.dead_retry = dead_retry
         self.socket_timeout = socket_timeout
@@ -227,6 +228,10 @@ class Client(threading.local):
         self.persistent_load = pload
         self.persistent_id = pid
         self.server_max_key_length = server_max_key_length
+        if key_encoder is None:
+            def key_encoder(key):
+                return key
+        self.key_encoder = key_encoder
         if self.server_max_key_length is None:
             self.server_max_key_length = SERVER_MAX_KEY_LENGTH
         self.server_max_value_length = server_max_value_length
@@ -243,19 +248,18 @@ class Client(threading.local):
 
     def _encode_key(self, key):
         if isinstance(key, tuple):
-            if isinstance(key[1], six.text_type):
+            if isinstance(key[1], str):
                 return (key[0], key[1].encode('utf8'))
-        elif isinstance(key, six.text_type):
+        elif isinstance(key, str):
             return key.encode('utf8')
         return key
 
     def _encode_cmd(self, cmd, key, headers, noreply, *args):
-        cmd_bytes = cmd.encode('utf-8') if six.PY3 else cmd
+        cmd_bytes = cmd.encode('utf-8')
         fullcmd = [cmd_bytes, b' ', key]
 
         if headers:
-            if six.PY3:
-                headers = headers.encode('utf-8')
+            headers = headers.encode('utf-8')
             fullcmd.append(b' ')
             fullcmd.append(headers)
 
@@ -311,11 +315,11 @@ class Client(threading.local):
             if not s.connect():
                 continue
             if s.family == socket.AF_INET:
-                name = '%s:%s (%s)' % (s.ip, s.port, s.weight)
+                name = '{}:{} ({})'.format(s.ip, s.port, s.weight)
             elif s.family == socket.AF_INET6:
-                name = '[%s]:%s (%s)' % (s.ip, s.port, s.weight)
+                name = '[{}]:{} ({})'.format(s.ip, s.port, s.weight)
             else:
-                name = 'unix:%s (%s)' % (s.address, s.weight)
+                name = 'unix:{} ({})'.format(s.address, s.weight)
             if not stat_args:
                 s.send_cmd('stats')
             else:
@@ -323,12 +327,14 @@ class Client(threading.local):
             serverData = {}
             data.append((name, serverData))
             readline = s.readline
-            while 1:
+            while True:
                 line = readline()
+                if line:
+                    line = line.decode('ascii')
                 # Rez: Patch for https://github.com/AcademySoftwareFoundation/rez/issues/1563.
-                if not line or line.decode('ascii').strip() in ('END', 'RESET'):
+                if not line or line.strip() in ('END', 'RESET'):
                     break
-                stats = line.decode('ascii').split(' ', 2)
+                stats = line.split(' ', 2)
                 serverData[stats[1]] = stats[2]
 
         return data
@@ -339,17 +345,19 @@ class Client(threading.local):
             if not s.connect():
                 continue
             if s.family == socket.AF_INET:
-                name = '%s:%s (%s)' % (s.ip, s.port, s.weight)
+                name = '{}:{} ({})'.format(s.ip, s.port, s.weight)
             elif s.family == socket.AF_INET6:
-                name = '[%s]:%s (%s)' % (s.ip, s.port, s.weight)
+                name = '[{}]:{} ({})'.format(s.ip, s.port, s.weight)
             else:
-                name = 'unix:%s (%s)' % (s.address, s.weight)
+                name = 'unix:{} ({})'.format(s.address, s.weight)
             serverData = {}
             data.append((name, serverData))
             s.send_cmd('stats slabs')
             readline = s.readline
-            while 1:
+            while True:
                 line = readline()
+                if line:
+                    line = line.decode('ascii')
                 if not line or line.strip() == 'END':
                     break
                 item = line.split(' ', 2)
@@ -364,22 +372,27 @@ class Client(threading.local):
                     serverData[slab[0]][slab[1]] = item[2]
         return data
 
+    def quit_all(self) -> None:
+        '''Send a "quit" command to all servers and wait for the connection to close.'''
+        for s in self.servers:
+            s.quit()
+
     def get_slabs(self):
         data = []
         for s in self.servers:
             if not s.connect():
                 continue
             if s.family == socket.AF_INET:
-                name = '%s:%s (%s)' % (s.ip, s.port, s.weight)
+                name = '{}:{} ({})'.format(s.ip, s.port, s.weight)
             elif s.family == socket.AF_INET6:
-                name = '[%s]:%s (%s)' % (s.ip, s.port, s.weight)
+                name = '[{}]:{} ({})'.format(s.ip, s.port, s.weight)
             else:
-                name = 'unix:%s (%s)' % (s.address, s.weight)
+                name = 'unix:{} ({})'.format(s.address, s.weight)
             serverData = {}
             data.append((name, serverData))
             s.send_cmd('stats items')
             readline = s.readline
-            while 1:
+            while True:
                 line = readline()
                 if not line or line.strip() == 'END':
                     break
@@ -435,7 +448,7 @@ class Client(threading.local):
                 # print("(using server %s)" % server,)
                 return server, key
             serverhash = str(serverhash) + str(i)
-            if isinstance(serverhash, six.text_type):
+            if isinstance(serverhash, str):
                 serverhash = serverhash.encode('ascii')
             serverhash = serverHashFunction(serverhash)
         return None, None
@@ -480,7 +493,7 @@ class Client(threading.local):
         dead_servers = []
 
         rc = 1
-        for server in six.iterkeys(server_keys):
+        for server in server_keys.keys():
             bigcmd = []
             write = bigcmd.append
             if time is not None:
@@ -488,11 +501,11 @@ class Client(threading.local):
             else:
                 headers = None
             for key in server_keys[server]:  # These are mangled keys
-                cmd = self._encode_cmd('delete', key, headers, noreply, b'\r\n')
+                cmd = self._encode_cmd('delete', self.key_encoder(key), headers, noreply, b'\r\n')
                 write(cmd)
             try:
                 server.send_cmds(b''.join(bigcmd))
-            except socket.error as msg:
+            except OSError as msg:
                 rc = 0
                 if isinstance(msg, tuple):
                     msg = msg[1]
@@ -507,29 +520,47 @@ class Client(threading.local):
         for server in dead_servers:
             del server_keys[server]
 
-        for server, keys in six.iteritems(server_keys):
+        for server, keys in server_keys.items():
             try:
                 for key in keys:
                     server.expect(b"DELETED")
-            except socket.error as msg:
+            except OSError as msg:
                 if isinstance(msg, tuple):
                     msg = msg[1]
                 server.mark_dead(msg)
                 rc = 0
         return rc
 
-    def delete(self, key, time=None, noreply=False):
+    def delete(self, key, noreply=False):
         '''Deletes a key from the memcache.
 
         @return: Nonzero on success.
-        @param time: number of seconds any subsequent set / update commands
-        should fail. Defaults to None for no delay.
         @param noreply: optional parameter instructs the server to not send the
             reply.
         @rtype: int
         '''
-        return self._deletetouch([b'DELETED', b'NOT_FOUND'], "delete", key,
-                                 time, noreply)
+        key = self._encode_key(self.key_encoder(key))
+        if self.do_check_key:
+            self.check_key(key)
+        server, key = self._get_server(key)
+        if not server:
+            return 0
+        self._statlog('delete')
+        fullcmd = self._encode_cmd('delete', key, None, noreply)
+
+        try:
+            server.send_cmd(fullcmd)
+            if noreply:
+                return 1
+            line = server.readline()
+            if line and line.strip() == b'DELETED':
+                return 1
+            self.debuglog('delete expected DELETED, got: {!r}'.format(line))
+        except OSError as msg:
+            if isinstance(msg, tuple):
+                msg = msg[1]
+            server.mark_dead(msg)
+        return 0
 
     def touch(self, key, time=0, noreply=False):
         '''Updates the expiration time of a key in memcache.
@@ -544,32 +575,24 @@ class Client(threading.local):
             reply.
         @rtype: int
         '''
-        return self._deletetouch([b'TOUCHED'], "touch", key, time, noreply)
-
-    def _deletetouch(self, expected, cmd, key, time=0, noreply=False):
-        key = self._encode_key(key)
+        key = self._encode_key(self.key_encoder(key))
         if self.do_check_key:
             self.check_key(key)
         server, key = self._get_server(key)
         if not server:
             return 0
-        self._statlog(cmd)
-        if time is not None:
-            headers = str(time)
-        else:
-            headers = None
-        fullcmd = self._encode_cmd(cmd, key, headers, noreply)
+        self._statlog('touch')
+        fullcmd = self._encode_cmd('touch', key, str(time), noreply)
 
         try:
             server.send_cmd(fullcmd)
             if noreply:
                 return 1
             line = server.readline()
-            if line and line.strip() in expected:
+            if line and line.strip() in [b'TOUCHED']:
                 return 1
-            self.debuglog('%s expected %s, got: %r'
-                          % (cmd, b' or '.join(expected), line))
-        except socket.error as msg:
+            self.debuglog('touch expected TOUCHED, got: {!r}'.format(line))
+        except OSError as msg:
             if isinstance(msg, tuple):
                 msg = msg[1]
             server.mark_dead(msg)
@@ -606,7 +629,7 @@ class Client(threading.local):
         @return: New value after incrementing, no None for noreply or error.
         @rtype: int
         """
-        return self._incrdecr("incr", key, delta, noreply)
+        return self._incrdecr("incr", self.key_encoder(key), delta, noreply)
 
     def decr(self, key, delta=1, noreply=False):
         """Decrement value for C{key} by C{delta}
@@ -624,7 +647,7 @@ class Client(threading.local):
         @return: New value after decrementing,  or None for noreply or error.
         @rtype: int
         """
-        return self._incrdecr("decr", key, delta, noreply)
+        return self._incrdecr("decr", self.key_encoder(key), delta, noreply)
 
     def _incrdecr(self, cmd, key, delta, noreply=False):
         key = self._encode_key(key)
@@ -643,7 +666,7 @@ class Client(threading.local):
             if line is None or line.strip() == b'NOT_FOUND':
                 return None
             return int(line)
-        except socket.error as msg:
+        except OSError as msg:
             if isinstance(msg, tuple):
                 msg = msg[1]
             server.mark_dead(msg)
@@ -658,7 +681,7 @@ class Client(threading.local):
         @return: Nonzero on success.
         @rtype: int
         '''
-        return self._set("add", key, val, time, min_compress_len, noreply)
+        return self._set("add", self.key_encoder(key), val, time, min_compress_len, noreply)
 
     def append(self, key, val, time=0, min_compress_len=0, noreply=False):
         '''Append the value to the end of the existing key's value.
@@ -669,7 +692,7 @@ class Client(threading.local):
         @return: Nonzero on success.
         @rtype: int
         '''
-        return self._set("append", key, val, time, min_compress_len, noreply)
+        return self._set("append", self.key_encoder(key), val, time, min_compress_len, noreply)
 
     def prepend(self, key, val, time=0, min_compress_len=0, noreply=False):
         '''Prepend the value to the beginning of the existing key's value.
@@ -680,7 +703,7 @@ class Client(threading.local):
         @return: Nonzero on success.
         @rtype: int
         '''
-        return self._set("prepend", key, val, time, min_compress_len, noreply)
+        return self._set("prepend", self.key_encoder(key), val, time, min_compress_len, noreply)
 
     def replace(self, key, val, time=0, min_compress_len=0, noreply=False):
         '''Replace existing key with value.
@@ -691,7 +714,7 @@ class Client(threading.local):
         @return: Nonzero on success.
         @rtype: int
         '''
-        return self._set("replace", key, val, time, min_compress_len, noreply)
+        return self._set("replace", self.key_encoder(key), val, time, min_compress_len, noreply)
 
     def set(self, key, val, time=0, min_compress_len=0, noreply=False):
         '''Unconditionally sets a key to a given value in the memcache.
@@ -710,7 +733,7 @@ class Client(threading.local):
         expire, either as a delta number of seconds, or an absolute
         unix time-since-the-epoch value. See the memcached protocol
         docs section "Storage Commands" for more info on <exptime>. We
-        default to 0 == cache forever.
+        default to 0 == cache forever. Optionnaly now accepts a timedelta.
 
         @param min_compress_len: The threshold length to kick in
         auto-compression of the value using the compressor
@@ -725,7 +748,9 @@ class Client(threading.local):
         @param noreply: optional parameter instructs the server to not
         send the reply.
         '''
-        return self._set("set", key, val, time, min_compress_len, noreply)
+        if isinstance(time, timedelta):
+            time = int(time.total_seconds())
+        return self._set("set", self.key_encoder(key), val, time, min_compress_len, noreply)
 
     def cas(self, key, val, time=0, min_compress_len=0, noreply=False):
         '''Check and set (CAS)
@@ -762,7 +787,7 @@ class Client(threading.local):
         @param noreply: optional parameter instructs the server to not
         send the reply.
         '''
-        return self._set("cas", key, val, time, min_compress_len, noreply)
+        return self._set("cas", self.key_encoder(key), val, time, min_compress_len, noreply)
 
     def _map_and_prefix_keys(self, key_iterable, key_prefix):
         """Map keys to the servers they will reside on.
@@ -789,27 +814,21 @@ class Client(threading.local):
                 # Ensure call to _get_server gets a Tuple as well.
                 serverhash, key = orig_key
 
-                key = self._encode_key(key)
-                if not isinstance(key, six.binary_type):
+                key = self._encode_key(self.key_encoder(key))
+                if not isinstance(key, bytes):
                     # set_multi supports int / long keys.
-                    key = str(key)
-                    if six.PY3:
-                        key = key.encode('utf8')
+                    key = str(key).encode('utf8')
                 bytes_orig_key = key
 
                 # Gotta pre-mangle key before hashing to a
                 # server. Returns the mangled key.
                 server, key = self._get_server(
                     (serverhash, key_prefix + key))
-
-                orig_key = orig_key[1]
             else:
-                key = self._encode_key(orig_key)
-                if not isinstance(key, six.binary_type):
+                key = self._encode_key(self.key_encoder(orig_key))
+                if not isinstance(key, bytes):
                     # set_multi supports int / long keys.
-                    key = str(key)
-                    if six.PY3:
-                        key = key.encode('utf8')
+                    key = str(key).encode('utf8')
                 bytes_orig_key = key
                 server, key = self._get_server(key_prefix + key)
 
@@ -894,13 +913,13 @@ class Client(threading.local):
         self._statlog('set_multi')
 
         server_keys, prefixed_to_orig_key = self._map_and_prefix_keys(
-            six.iterkeys(mapping), key_prefix)
+            mapping.keys(), key_prefix)
 
         # send out all requests on each server before reading anything
         dead_servers = []
         notstored = []  # original keys.
 
-        for server in six.iterkeys(server_keys):
+        for server in server_keys.keys():
             bigcmd = []
             write = bigcmd.append
             try:
@@ -911,14 +930,14 @@ class Client(threading.local):
                     if store_info:
                         flags, len_val, val = store_info
                         headers = "%d %d %d" % (flags, time, len_val)
-                        fullcmd = self._encode_cmd('set', key, headers,
+                        fullcmd = self._encode_cmd('set', self.key_encoder(key), headers,
                                                    noreply,
                                                    b'\r\n', val, b'\r\n')
                         write(fullcmd)
                     else:
                         notstored.append(prefixed_to_orig_key[key])
                 server.send_cmds(b''.join(bigcmd))
-            except socket.error as msg:
+            except OSError as msg:
                 if isinstance(msg, tuple):
                     msg = msg[1]
                 server.mark_dead(msg)
@@ -936,7 +955,7 @@ class Client(threading.local):
         if not server_keys:
             return list(mapping.keys())
 
-        for server, keys in six.iteritems(server_keys):
+        for server, keys in server_keys.items():
             try:
                 for key in keys:
                     if server.readline() == b'STORED':
@@ -944,7 +963,7 @@ class Client(threading.local):
                     else:
                         # un-mangle.
                         notstored.append(prefixed_to_orig_key[key])
-            except (_Error, socket.error) as msg:
+            except (_Error, OSError) as msg:
                 if isinstance(msg, tuple):
                     msg = msg[1]
                 server.mark_dead(msg)
@@ -961,23 +980,14 @@ class Client(threading.local):
         # subclasses of native types (such as markup-safe strings) are pickled
         # and restored as instances of the correct class.
         val_type = type(val)
-        if val_type == six.binary_type:
+        if val_type == bytes:
             pass
-        elif val_type == six.text_type:
+        elif val_type == str:
             flags |= Client._FLAG_TEXT
             val = val.encode('utf-8')
         elif val_type == int:
             flags |= Client._FLAG_INTEGER
-            val = '%d' % val
-            if six.PY3:
-                val = val.encode('ascii')
-            # force no attempt to compress this silly string.
-            min_compress_len = 0
-        elif six.PY2 and isinstance(val, long):  # noqa: F821
-            flags |= Client._FLAG_LONG
-            val = str(val)
-            if six.PY3:
-                val = val.encode('ascii')
+            val = ('%d' % val).encode('ascii')
             # force no attempt to compress this silly string.
             min_compress_len = 0
         else:
@@ -1004,8 +1014,7 @@ class Client(threading.local):
                 val = comp_val
 
         #  silently do not store if value length exceeds maximum
-        if (self.server_max_value_length != 0 and
-                len(val) > self.server_max_value_length):
+        if (self.server_max_value_length != 0 and len(val) > self.server_max_value_length):
             return 0
 
         return (flags, len(val), val)
@@ -1043,7 +1052,7 @@ class Client(threading.local):
                 if noreply:
                     return True
                 return server.expect(b"STORED", raise_exception=True) == b"STORED"
-            except socket.error as msg:
+            except OSError as msg:
                 if isinstance(msg, tuple):
                     msg = msg[1]
                 server.mark_dead(msg)
@@ -1056,11 +1065,11 @@ class Client(threading.local):
             try:
                 if server._get_socket():
                     return _unsafe_set()
-            except (_ConnectionDeadError, socket.error) as msg:
+            except (_ConnectionDeadError, OSError) as msg:
                 server.mark_dead(msg)
             return 0
 
-    def _get(self, cmd, key):
+    def _get(self, cmd, key, default=None):
         key = self._encode_key(key)
         if self.do_check_key:
             self.check_key(key)
@@ -1072,7 +1081,7 @@ class Client(threading.local):
             self._statlog(cmd)
 
             try:
-                cmd_bytes = cmd.encode('utf-8') if six.PY3 else cmd
+                cmd_bytes = cmd.encode('utf-8')
                 fullcmd = b''.join((cmd_bytes, b' ', key))
                 server.send_cmd(fullcmd)
                 rkey = flags = rlen = cas_id = None
@@ -1089,12 +1098,12 @@ class Client(threading.local):
                     )
 
                 if not rkey:
-                    return None
+                    return default
                 try:
                     value = self._recv_value(server, flags, rlen)
                 finally:
                     server.expect(b"END", raise_exception=True)
-            except (_Error, socket.error) as msg:
+            except (_Error, OSError) as msg:
                 if isinstance(msg, tuple):
                     msg = msg[1]
                 server.mark_dead(msg)
@@ -1110,23 +1119,23 @@ class Client(threading.local):
                 if server.connect():
                     return _unsafe_get()
                 return None
-            except (_ConnectionDeadError, socket.error) as msg:
+            except (_ConnectionDeadError, OSError) as msg:
                 server.mark_dead(msg)
             return None
 
-    def get(self, key):
+    def get(self, key, default=None):
         '''Retrieves a key from the memcache.
 
         @return: The value or None.
         '''
-        return self._get('get', key)
+        return self._get('get', self.key_encoder(key), default)
 
     def gets(self, key):
         '''Retrieves a key from the memcache. Used in conjunction with 'cas'.
 
         @return: The value or None.
         '''
-        return self._get('gets', key)
+        return self._get('gets', self.key_encoder(key))
 
     def get_multi(self, keys, key_prefix=''):
         '''Retrieves multiple keys from the memcache doing just one query.
@@ -1186,15 +1195,15 @@ class Client(threading.local):
         self._statlog('get_multi')
 
         server_keys, prefixed_to_orig_key = self._map_and_prefix_keys(
-            keys, key_prefix)
+            [self.key_encoder(k) for k in keys], key_prefix)
 
         # send out all requests on each server before reading anything
         dead_servers = []
-        for server in six.iterkeys(server_keys):
+        for server in server_keys.keys():
             try:
                 fullcmd = b"get " + b" ".join(server_keys[server])
                 server.send_cmd(fullcmd)
-            except socket.error as msg:
+            except OSError as msg:
                 if isinstance(msg, tuple):
                     msg = msg[1]
                 server.mark_dead(msg)
@@ -1205,7 +1214,7 @@ class Client(threading.local):
             del server_keys[server]
 
         retvals = {}
-        for server in six.iterkeys(server_keys):
+        for server in server_keys.keys():
             try:
                 line = server.readline()
                 while line and line != b'END':
@@ -1216,7 +1225,7 @@ class Client(threading.local):
                         # un-prefix returned key.
                         retvals[prefixed_to_orig_key[rkey]] = val
                     line = server.readline()
-            except (_Error, socket.error) as msg:
+            except (_Error, OSError) as msg:
                 if isinstance(msg, tuple):
                     msg = msg[1]
                 server.mark_dead(msg)
@@ -1265,10 +1274,7 @@ class Client(threading.local):
         elif flags & Client._FLAG_INTEGER:
             val = int(buf)
         elif flags & Client._FLAG_LONG:
-            if six.PY3:
-                val = int(buf)
-            else:
-                val = long(buf)  # noqa: F821
+            val = int(buf)
         elif flags & Client._FLAG_PICKLE:
             try:
                 file = BytesIO(buf)
@@ -1308,11 +1314,10 @@ class Client(threading.local):
             #  key is empty but there is some other component to key
             return
 
-        if not isinstance(key, six.binary_type):
+        if not isinstance(key, bytes):
             raise Client.MemcachedKeyTypeError("Key must be a binary string")
 
-        if (self.server_max_key_length != 0 and
-                len(key) + key_extra_len > self.server_max_key_length):
+        if (self.server_max_key_length != 0 and len(key) + key_extra_len > self.server_max_key_length):
             raise Client.MemcachedKeyLengthError(
                 "Key length is > %s" % self.server_max_key_length
             )
@@ -1321,7 +1326,7 @@ class Client(threading.local):
                 "Control/space characters not allowed (key=%r)" % key)
 
 
-class _Host(object):
+class _Host:
 
     def __init__(self, host, debug=0, dead_retry=_DEAD_RETRY,
                  socket_timeout=_SOCKET_TIMEOUT, flush_on_reconnect=0):
@@ -1384,7 +1389,7 @@ class _Host(object):
         return 0
 
     def mark_dead(self, reason):
-        self.debuglog("MemCache: %s: %s.  Marking dead." % (self, reason))
+        self.debuglog("MemCache: {}: {}.  Marking dead.".format(self, reason))
         self.deaduntil = time.time() + self.dead_retry
         if self.flush_on_reconnect:
             self.flush_on_next_connect = 1
@@ -1403,7 +1408,7 @@ class _Host(object):
         except socket.timeout as msg:
             self.mark_dead("connect: %s" % msg)
             return None
-        except socket.error as msg:
+        except OSError as msg:
             if isinstance(msg, tuple):
                 msg = msg[1]
             self.mark_dead("connect: %s" % msg)
@@ -1421,13 +1426,13 @@ class _Host(object):
             self.socket = None
 
     def send_cmd(self, cmd):
-        if isinstance(cmd, six.text_type):
+        if isinstance(cmd, str):
             cmd = cmd.encode('utf8')
         self.socket.sendall(cmd + b'\r\n')
 
     def send_cmds(self, cmds):
         """cmds already has trailing \r\n's applied."""
-        if isinstance(cmds, six.text_type):
+        if isinstance(cmds, str):
             cmds = cmds.encode('utf8')
         self.socket.sendall(cmds)
 
@@ -1441,7 +1446,8 @@ class _Host(object):
         if self.socket:
             recv = self.socket.recv
         else:
-            recv = lambda bufsize: b''
+            def recv(bufsize):
+                return b''
 
         while True:
             index = buf.find(b'\r\n')
@@ -1463,11 +1469,8 @@ class _Host(object):
     def expect(self, text, raise_exception=False):
         line = self.readline(raise_exception)
         if self.debug and line != text:
-            if six.PY3:
-                text = text.decode('utf8')
-                log_line = line.decode('utf8', 'replace')
-            else:
-                log_line = line
+            text = text.decode('utf8')
+            log_line = line.decode('utf8', 'replace')
             self.debuglog("while expecting %r, got unexpected response %r"
                           % (text, log_line))
         return line
@@ -1484,6 +1487,22 @@ class _Host(object):
         self.buffer = buf[rlen:]
         return buf[:rlen]
 
+    def quit(self) -> None:
+        '''Send a "quit" command to remote server and wait for connection to close.'''
+        if self.socket:
+            self.send_cmd('quit')
+
+            # We can't close the local socket until the remote end processes the quit
+            # command and sends us a FIN packet.  When that happens, socket.recv()
+            # will stop blocking and return an empty string.  If we try to close the
+            # socket before then, the OS will think we're initiating the connection
+            # close and will put the socket into TIME_WAIT.
+            self.socket.recv(1)
+
+            # At this point, socket should be in CLOSE_WAIT.  Closing the socket should
+            # release the port back to the OS.
+            self.close_socket()
+
     def flush(self):
         self.send_cmd('flush_all')
         self.expect(b'OK')
@@ -1498,7 +1517,7 @@ class _Host(object):
         elif self.family == socket.AF_INET6:
             return "inet6:[%s]:%d%s" % (self.address[0], self.address[1], d)
         else:
-            return "unix:%s%s" % (self.address, d)
+            return "unix:{}{}".format(self.address, d)
 
 
 def _doctest():
@@ -1509,7 +1528,7 @@ def _doctest():
     globs = {"mc": mc}
     results = doctest.testmod(memcache, globs=globs)
     mc.disconnect_all()
-    print("Doctests: %s" % (results,))
+    print("Doctests: {}".format(results))
     if results.failed:
         sys.exit(1)
 
