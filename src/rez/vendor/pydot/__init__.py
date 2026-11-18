@@ -1,8 +1,21 @@
+# SPDX-FileCopyrightText: 2024 pydot contributors
+#
+# SPDX-License-Identifier: MIT
+
 """An interface to GraphViz."""
 
+import logging
+
 __author__ = "Ero Carrera"
-__version__ = "2.0.0"
+__version__ = "4.0.1"
 __license__ = "MIT"
 
-from rez.vendor.pydot.exceptions import *
-from rez.vendor.pydot.core import *
+
+_logger = logging.getLogger(__name__)
+_logger.debug("pydot initializing")
+_logger.debug("pydot %s", __version__)
+
+
+from rez.vendor.pydot.classes import FrozenDict  # noqa: F401, E402
+from rez.vendor.pydot.core import *  # noqa: F403, E402
+from rez.vendor.pydot.exceptions import *  # noqa: E402, F403

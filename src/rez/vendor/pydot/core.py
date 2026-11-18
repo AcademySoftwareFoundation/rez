@@ -1,25 +1,28 @@
+# SPDX-FileCopyrightText: 2024 pydot contributors
+#
+# SPDX-License-Identifier: MIT
+
 """An interface to GraphViz."""
+
+from __future__ import annotations
+
 import copy
-import io
 import errno
+import itertools
+import logging
 import os
 import re
 import subprocess
 import sys
-import tempfile
 import warnings
+from typing import Any, Sequence, Union, cast
 
 from rez.vendor import pydot
+from rez.vendor.pydot._vendor import tempfile
+from rez.vendor.pydot.classes import AttributeDict, EdgeEndpoint, FrozenDict
 
-try:
-    from rez.vendor.pydot import dot_parser
-except Exception as e:
-    warnings.warn(
-        "`pydot` could not import `dot_parser`, "
-        "so `pydot` will be unable to parse DOT files. "
-        "The error was:  {e}".format(e=e)
-    )
-
+_logger = logging.getLogger(__name__)
+_logger.debug("pydot core module initializing")
 
 # fmt: off
 GRAPH_ATTRIBUTES = {
@@ -80,6 +83,46 @@ CLUSTER_ATTRIBUTES = {
 # fmt: on
 
 
+OUTPUT_FORMATS = {
+    "canon",
+    "cmap",
+    "cmapx",
+    "cmapx_np",
+    "dia",
+    "dot",
+    "fig",
+    "gd",
+    "gd2",
+    "gif",
+    "hpgl",
+    "imap",
+    "imap_np",
+    "ismap",
+    "jpe",
+    "jpeg",
+    "jpg",
+    "mif",
+    "mp",
+    "pcl",
+    "pdf",
+    "pic",
+    "plain",
+    "plain-ext",
+    "png",
+    "ps",
+    "ps2",
+    "svg",
+    "svgz",
+    "vml",
+    "vmlz",
+    "vrml",
+    "vtx",
+    "wbmp",
+    "xdot",
+    "xlib",
+}
+
+
 DEFAULT_PROGRAMS = {
     "dot",
     "twopi",
@@ -90,28 +133,94 @@ DEFAULT_PROGRAMS = {
 }
 
 
-def is_windows():
-    # type: () -> bool
+class frozendict(FrozenDict):
+    """Deprecated alias for pydot.classes.FrozenDict."""
+
+    def __init__(self, *args: Any, **kwargs: Any):
+        warnings.warn(
+            f"{self.__class__.__name__} is deprecated. "
+            "Use pydot.classes.FrozenDict instead.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(self, *args, **kwargs)
+
+
+def __generate_attribute_methods(Klass: type[Common], attrs: set[str]) -> None:
+    """Generate setter and getter methods for attributes."""
+    for attr in attrs:
+        # Generate all the Getter methods.
+        #
+        def __getter(self: Any, _attr: str = attr) -> Any:
+            return self.get(_attr)
+
+        setattr(Klass, f"get_{attr}", __getter)
+
+        # Generate all the Setter methods.
+        #
+        def __setter(self: Any, *args: Any, _attr: str = attr) -> Any:
+            return self.set(_attr, *args)
+
+        setattr(Klass, f"set_{attr}", __setter)
+
+
+def __generate_format_methods(Klass: type) -> None:
+    """Generate create_ and write_ methods for formats."""
+    # Automatically creates all
+    # the methods enabling the creation
+    # of output in any of the supported formats.
+    for frmt in OUTPUT_FORMATS:
+
+        def __create_method(
+            self: Any,
+            f: str = frmt,
+            prog: str | None = None,
+            encoding: str | None = None,
+        ) -> Any:
+            """Refer to docstring of method `create`."""
+            return self.create(format=f, prog=prog, encoding=encoding)
+
+        setattr(Klass, f"create_{frmt}", __create_method)
+
+    for frmt in OUTPUT_FORMATS ^ {"raw"}:
+
+        def __write_method(
+            self: Any,
+            path: str,
+            f: str = frmt,
+            prog: str | None = None,
+            encoding: str | None = None,
+        ) -> None:
+            """Refer to docstring of method `write`."""
+            self.write(path, format=f, prog=prog, encoding=encoding)
+
+        setattr(Klass, f"write_{frmt}", __write_method)
+
+
+def is_windows() -> bool:
     return os.name == "nt"
 
 
-def is_anaconda():
-    # type: () -> bool
+def is_anaconda() -> bool:
     import glob
 
     conda_pattern = os.path.join(sys.prefix, "conda-meta\\graphviz*.json")
     return glob.glob(conda_pattern) != []
 
 
-def get_executable_extension():
-    # type: () -> str
+def get_executable_extension() -> str:
     if is_windows():
         return ".bat" if is_anaconda() else ".exe"
     else:
         return ""
 
 
-def call_graphviz(program, arguments, working_dir, **kwargs):
+def call_graphviz(
+    program: str,
+    arguments: list[str],
+    working_dir: str | bytes,
+    **kwargs: Any,
+) -> tuple[str, str, subprocess.Popen[str]]:
     # explicitly inherit `$PATH`, on Windows too,
     # with `shell=False`
 
@@ -121,6 +230,13 @@ def call_graphviz(program, arguments, working_dir, **kwargs):
 
     if arguments is None:
         arguments = []
+
+    if "creationflags" not in kwargs and hasattr(
+        subprocess, "CREATE_NO_WINDOW"
+    ):
+        # Only on Windows OS:
+        # specify that the new process shall not create a new window
+        kwargs.update(creationflags=subprocess.CREATE_NO_WINDOW)
 
     env = {
         "PATH": os.environ.get("PATH", ""),
@@ -144,77 +260,55 @@ def call_graphviz(program, arguments, working_dir, **kwargs):
     return stdout_data, stderr_data, process
 
 
-#
-# Extended version of ASPN's Python Cookbook Recipe:
-# Frozen dictionaries.
-# https://code.activestate.com/recipes/414283/
-#
-# This version freezes dictionaries used as values within dictionaries.
-#
-class frozendict(dict):
-    def _blocked_attribute(obj):
-        raise AttributeError("A frozendict cannot be modified.")
-
-    _blocked_attribute = property(_blocked_attribute)
-
-    __delitem__ = __setitem__ = clear = _blocked_attribute
-    pop = popitem = setdefault = update = _blocked_attribute
-
-    def __new__(cls, *args, **kw):
-        new = dict.__new__(cls)
-
-        args_ = []
-        for arg in args:
-            if isinstance(arg, dict):
-                arg = copy.copy(arg)
-                for k in arg:
-                    v = arg[k]
-                    if isinstance(v, frozendict):
-                        arg[k] = v
-                    elif isinstance(v, dict):
-                        arg[k] = frozendict(v)
-                    elif isinstance(v, list):
-                        v_ = list()
-                        for elm in v:
-                            if isinstance(elm, dict):
-                                v_.append(frozendict(elm))
-                            else:
-                                v_.append(elm)
-                        arg[k] = tuple(v_)
-                args_.append(arg)
-            else:
-                args_.append(arg)
-
-        dict.__init__(new, *args_, **kw)
-        return new
-
-    def __init__(self, *args, **kw):
-        pass
-
-    def __hash__(self):
-        try:
-            return self._cached_hash
-        except AttributeError:
-            h = self._cached_hash = hash(tuple(sorted(self.items())))
-            return h
-
-    def __repr__(self):
-        return "frozendict(%s)" % dict.__repr__(self)
+def make_quoted(s: str) -> str:
+    """Transform a string into a quoted string, escaping specials."""
+    replace = {
+        ord('"'): r"\"",
+        ord("\n"): r"\n",
+        ord("\r"): r"\r",
+    }
+    return rf'"{s.translate(replace)}"'
 
 
 dot_keywords = ["graph", "subgraph", "digraph", "node", "edge", "strict"]
 
-id_re_alpha_nums = re.compile("^[_a-zA-Z][a-zA-Z0-9_,]*$", re.UNICODE)
+re_numeric = re.compile(r"^([0-9]+\.?[0-9]*|[0-9]*\.[0-9]+)$")
+re_dbl_quoted = re.compile(r'^".*"$', re.S)
+re_html = re.compile(r"^<.*>$", re.S)
+
+id_re_alpha_nums = re.compile(r"^[_a-zA-Z][a-zA-Z0-9_]*$")
 id_re_alpha_nums_with_ports = re.compile(
-    '^[_a-zA-Z][a-zA-Z0-9_,:"]*[a-zA-Z0-9_,"]+$', re.UNICODE
+    r'^[_a-zA-Z][a-zA-Z0-9_:"]*[a-zA-Z0-9_"]+$'
 )
-id_re_num = re.compile("^[0-9,]+$", re.UNICODE)
-id_re_with_port = re.compile("^([^:]*):([^:]*)$", re.UNICODE)
-id_re_dbl_quoted = re.compile('^".*"$', re.S | re.UNICODE)
-id_re_html = re.compile("^<.*>$", re.S | re.UNICODE)
+id_re_with_port = re.compile(r"^([^:]*):([^:]*)$")
 
 
-def needs_quotes(s):
+def any_needs_quotes(s: str) -> bool | None:
+    """Determine if a string needs to be quoted.
+
+    Returns True, False, or None if the result is indeterminate.
+    """
+
+    # Strings consisting _only_ of digits are safe unquoted
+    if s.isdigit():
+        return False
+
+    # MIXED-aphanumeric values need quoting if they *start* with a digit
+    if s.isalnum():
+        return s[0].isdigit()
+
+    has_high_chars = any(ord(c) > 0x7F or ord(c) == 0 for c in s)
+    if has_high_chars and not re_dbl_quoted.match(s) and not re_html.match(s):
+        return True
+
+    for test_re in [re_numeric, re_dbl_quoted, re_html]:
+        if test_re.match(s):
+            return False
+
+    return None
+
+
+def id_needs_quotes(s: str) -> bool:
     """Checks whether a string is a dot language ID.
 
     It will check whether the string is solely composed
@@ -230,18 +324,15 @@ def needs_quotes(s):
     # would use a reserved keyword as name. This function will return
     # false indicating that a keyword string, if provided as-is, won't
     # need quotes.
-    if s in dot_keywords:
+    if s.lower() in dot_keywords:
         return False
 
-    chars = [ord(c) for c in s if ord(c) > 0x7F or ord(c) == 0]
-    if chars and not id_re_dbl_quoted.match(s) and not id_re_html.match(s):
-        return True
+    any_result = any_needs_quotes(s)
+    if any_result is not None:
+        return any_result
 
     for test_re in [
         id_re_alpha_nums,
-        id_re_num,
-        id_re_dbl_quoted,
-        id_re_html,
         id_re_alpha_nums_with_ports,
     ]:
         if test_re.match(s):
@@ -249,40 +340,60 @@ def needs_quotes(s):
 
     m = id_re_with_port.match(s)
     if m:
-        return needs_quotes(m.group(1)) or needs_quotes(m.group(2))
+        return id_needs_quotes(m.group(1)) or id_needs_quotes(m.group(2))
 
     return True
 
 
-def quote_if_necessary(s):
-    """Enclose attribute value in quotes, if needed."""
-    if isinstance(s, bool):
-        if s is True:
-            return "True"
-        return "False"
+def quote_id_if_necessary(
+    s: str, unquoted_keywords: Sequence[str] | None = None
+) -> str:
+    """Enclose identifier in quotes, if needed."""
+    unquoted = [
+        w.lower() for w in list(unquoted_keywords if unquoted_keywords else [])
+    ]
 
+    if isinstance(s, bool):
+        return str(s).lower()
     if not isinstance(s, str):
         return s
-
     if not s:
         return s
 
-    if needs_quotes(s):
-        replace = {
-            '"': r"\"",
-            "\n": r"\n",
-            "\r": r"\r",
-        }
-        for a, b in replace.items():
-            s = s.replace(a, b)
+    if s.lower() in unquoted:
+        return s
+    if s.lower() in dot_keywords:
+        return make_quoted(s)
 
-        return '"' + s + '"'
+    if id_needs_quotes(s):
+        return make_quoted(s)
 
     return s
 
 
-def graph_from_dot_data(s):
+def quote_attr_if_necessary(s: str) -> str:
+    """Enclose attribute value in quotes, if needed."""
+    if isinstance(s, bool):
+        return str(s).lower()
+
+    if not isinstance(s, str):
+        return s
+
+    if s.lower() in dot_keywords:
+        return make_quoted(s)
+
+    any_result = any_needs_quotes(s)
+    if any_result is not None and not any_result:
+        return s
+
+    return make_quoted(s)
+
+
+def graph_from_dot_data(s: str) -> list[Dot] | None:
     """Load graphs from DOT description in string `s`.
+
+    This function is NOT thread-safe due to the internal use of `pyparsing`.
+    Use a lock if needed.
 
     @param s: string in [DOT language](
         https://en.wikipedia.org/wiki/DOT_(graph_description_language))
@@ -290,11 +401,18 @@ def graph_from_dot_data(s):
     @return: Graphs that result from parsing.
     @rtype: `list` of `pydot.Dot`
     """
-    return dot_parser.parse_dot_data(s)
+    import rez.vendor.pydot.dot_parser
+
+    return rez.vendor.pydot.dot_parser.parse_dot_data(s)
 
 
-def graph_from_dot_file(path, encoding=None):
+def graph_from_dot_file(
+    path: str | bytes, encoding: str | None = None
+) -> list[Dot] | None:
     """Load graphs from DOT file at `path`.
+
+    This function is NOT thread-safe due to the internal use of `pyparsing`.
+    Use a lock if needed.
 
     @param path: to DOT file
     @param encoding: as passed to `io.open`.
@@ -303,13 +421,15 @@ def graph_from_dot_file(path, encoding=None):
     @return: Graphs that result from parsing.
     @rtype: `list` of `pydot.Dot`
     """
-    with io.open(path, "rt", encoding=encoding) as f:
+    with open(path, encoding=encoding) as f:
         s = f.read()
     graphs = graph_from_dot_data(s)
     return graphs
 
 
-def graph_from_edges(edge_list, node_prefix="", directed=False):
+def graph_from_edges(
+    edge_list: Sequence[Any], node_prefix: str = "", directed: bool = False
+) -> Dot:
     """Creates a basic graph out of an edge list.
 
     The edge list has to be a list of tuples representing
@@ -343,7 +463,11 @@ def graph_from_edges(edge_list, node_prefix="", directed=False):
     return graph
 
 
-def graph_from_adjacency_matrix(matrix, node_prefix="", directed=False):
+def graph_from_adjacency_matrix(
+    matrix: Sequence[Sequence[Any]],
+    node_prefix: str = "",
+    directed: bool = False,
+) -> Dot:
     """Creates a basic graph out of an adjacency matrix.
 
     The matrix has to be a list of rows of values
@@ -372,8 +496,8 @@ def graph_from_adjacency_matrix(matrix, node_prefix="", directed=False):
             if e:
                 graph.add_edge(
                     Edge(
-                        "%s%s" % (node_prefix, node_orig),
-                        "%s%s" % (node_prefix, node_dest),
+                        f"{node_prefix}{node_orig}",
+                        f"{node_prefix}{node_dest}",
                     )
                 )
             node_dest += 1
@@ -382,7 +506,11 @@ def graph_from_adjacency_matrix(matrix, node_prefix="", directed=False):
     return graph
 
 
-def graph_from_incidence_matrix(matrix, node_prefix="", directed=False):
+def graph_from_incidence_matrix(
+    matrix: Sequence[Sequence[Any]],
+    node_prefix: str = "",
+    directed: bool = False,
+) -> Dot:
     """Creates a basic graph out of an incidence matrix.
 
     The matrix has to be a list of rows of values
@@ -409,8 +537,8 @@ def graph_from_incidence_matrix(matrix, node_prefix="", directed=False):
         if len(nodes) == 2:
             graph.add_edge(
                 Edge(
-                    "%s%s" % (node_prefix, abs(nodes[0])),
-                    "%s%s" % (node_prefix, nodes[1]),
+                    f"{node_prefix}{abs(nodes[0])}",
+                    f"{node_prefix}{nodes[1]}",
                 )
             )
 
@@ -420,66 +548,42 @@ def graph_from_incidence_matrix(matrix, node_prefix="", directed=False):
     return graph
 
 
-class Common(object):
+class Common:
     """Common information to several classes.
 
     Should not be directly used, several classes are derived from
     this one.
     """
 
-    def __getstate__(self):
-        dict = copy.copy(self.obj_dict)
-        return dict
+    def __init__(self, obj_dict: AttributeDict | None = None) -> None:
+        self.obj_dict: AttributeDict = obj_dict or {}
 
-    def __setstate__(self, state):
+    def __getstate__(self) -> AttributeDict:
+        _dict = copy.copy(self.obj_dict)
+        return _dict
+
+    def __setstate__(self, state: AttributeDict) -> None:
         self.obj_dict = state
 
-    def __get_attribute__(self, attr):
-        """Look for default attributes for this node"""
-
-        attr_val = self.obj_dict["attributes"].get(attr, None)
-        if attr_val is None:
-            # get the defaults for nodes/edges
-
-            default_node_name = self.obj_dict["type"]
-
-            # The defaults for graphs are set on a node named 'graph'
-            if default_node_name in ("subgraph", "digraph", "cluster"):
-                default_node_name = "graph"
-
-            g = self.get_parent_graph()
-            if g is not None:
-                defaults = g.get_node(default_node_name)
-            else:
-                return None
-
-            # Multiple defaults could be set by having repeated 'graph [...]'
-            # 'node [...]', 'edge [...]' statements. In such case, if the
-            # same attribute is set in different statements, only the first
-            # will be returned. In order to get all, one would call the
-            # get_*_defaults() methods and handle those. Or go node by node
-            # (of the ones specifying defaults) and modify the attributes
-            # individually.
-            #
-            if not isinstance(defaults, (list, tuple)):
-                defaults = [defaults]
-
-            for default in defaults:
-                attr_val = default.obj_dict["attributes"].get(attr, None)
-                if attr_val:
-                    return attr_val
-        else:
-            return attr_val
-
-        return None
-
-    def set_parent_graph(self, parent_graph):
+    def set_parent_graph(self, parent_graph: Common | None) -> None:
         self.obj_dict["parent_graph"] = parent_graph
 
-    def get_parent_graph(self):
+    def get_parent_graph(self) -> Graph | None:
         return self.obj_dict.get("parent_graph", None)
 
-    def set(self, name, value):
+    def get_top_graph_type(self, default: str = "graph") -> str:
+        """Find the topmost parent graph type for the current object."""
+        parent = self.get_parent_graph()
+        while parent is not None:
+            parent_ = parent.get_parent_graph()
+            if parent_ == parent:
+                break
+            parent = parent_
+        if parent is None:
+            return default
+        return cast("str", parent.obj_dict.get("type", default))
+
+    def set(self, name: str, value: Any) -> None:
         """Set an attribute value by name.
 
         Given an attribute 'name' it will set its value to 'value'.
@@ -487,11 +591,11 @@ class Common(object):
 
             set_'name'(value)
 
-        which are defined for all the existing attributes.
+        which are defined for standard graphviz attributes.
         """
         self.obj_dict["attributes"][name] = value
 
-    def get(self, name):
+    def get(self, name: str) -> Any:
         """Get an attribute value by name.
 
         Given an attribute 'name' it will get its value.
@@ -499,38 +603,58 @@ class Common(object):
 
             get_'name'()
 
-        which are defined for all the existing attributes.
+        which are defined for standard graphviz attributes.
         """
         return self.obj_dict["attributes"].get(name, None)
 
-    def get_attributes(self):
+    def get_attributes(self) -> AttributeDict:
         """Get attributes of the object"""
-        return self.obj_dict["attributes"]
+        return cast(AttributeDict, self.obj_dict.get("attributes", {}))
 
-    def set_sequence(self, seq):
+    def set_sequence(self, seq: int) -> None:
         """Set sequence"""
         self.obj_dict["sequence"] = seq
 
-    def get_sequence(self):
+    def get_sequence(self) -> int | None:
         """Get sequence"""
-        return self.obj_dict["sequence"]
+        seq = self.obj_dict.get("sequence")
+        if seq is None:
+            return seq
+        return int(seq)
 
-    def create_attribute_methods(self, obj_attributes):
-        for attr in obj_attributes:
-            # Generate all the Setter methods.
-            #
-            self.__setattr__(
-                "set_" + attr,
-                lambda x, a=attr: self.obj_dict["attributes"].__setitem__(
-                    a, x
-                ),
-            )
+    @staticmethod
+    def get_indent(indent: Any, indent_level: int) -> str:
+        if isinstance(indent, (int, float)):
+            indent_str = " " * int(indent)
+        else:
+            indent_str = str(indent)
+        return indent_str * indent_level
 
-            # Generate all the Getter methods.
-            #
-            self.__setattr__(
-                "get_" + attr, lambda a=attr: self.__get_attribute__(a)
-            )
+    @staticmethod
+    def _format_attr(key: str, value: Any) -> str:
+        """Turn a key-value pair into an attribute, properly quoted."""
+        if value == "":
+            value = '""'
+        if value is not None:
+            return f"{key}={quote_attr_if_necessary(value)}"
+        return key
+
+    def formatted_attr_list(self) -> list[str]:
+        """Return a list of the class's attributes as formatted strings."""
+        return [
+            self._format_attr(k, v)
+            for k, v in self.obj_dict["attributes"].items()
+        ]
+
+    def attrs_string(self, prefix: str = "") -> str:
+        """Format the current attributes list for output.
+
+        The `prefix` string will be prepended if and only if some
+        output is generated."""
+        attrs = self.formatted_attr_list()
+        if not attrs:
+            return ""
+        return f"{prefix}[{', '.join(attrs)}]"
 
 
 class Node(Common):
@@ -546,25 +670,19 @@ class Node(Common):
     be supported.
     """
 
-    def __init__(self, name="", obj_dict=None, **attrs):
-        #
-        # Nodes will take attributes of
-        # all other types because the defaults
-        # for any GraphViz object are dealt with
-        # as if they were Node definitions
-        #
-        if obj_dict is not None:
-            self.obj_dict = obj_dict
-
-        else:
-            self.obj_dict = dict()
-
+    def __init__(
+        self,
+        name: str = "",
+        obj_dict: AttributeDict | None = None,
+        **attrs: Any,
+    ) -> None:
+        super().__init__(obj_dict)
+        if obj_dict is None:
             # Copy the attributes
             #
             self.obj_dict["attributes"] = dict(attrs)
             self.obj_dict["type"] = "node"
             self.obj_dict["parent_graph"] = None
-            self.obj_dict["parent_node_list"] = None
             self.obj_dict["sequence"] = None
 
             # Remove the compass point
@@ -578,27 +696,25 @@ class Node(Common):
             if isinstance(name, int):
                 name = str(name)
 
-            self.obj_dict["name"] = quote_if_necessary(name)
+            self.obj_dict["name"] = name
             self.obj_dict["port"] = port
 
-        self.create_attribute_methods(NODE_ATTRIBUTES)
-
-    def __str__(self):
+    def __str__(self) -> str:
         return self.to_string()
 
-    def set_name(self, node_name):
+    def set_name(self, node_name: str | None) -> None:
         """Set the node's name."""
         self.obj_dict["name"] = node_name
 
-    def get_name(self):
+    def get_name(self) -> str:
         """Get the node's name."""
-        return self.obj_dict["name"]
+        return self.obj_dict["name"]  # type: ignore
 
-    def get_port(self):
+    def get_port(self) -> str | None:
         """Get the node's port."""
-        return self.obj_dict["port"]
+        return self.obj_dict["port"]  # type: ignore
 
-    def add_style(self, style):
+    def add_style(self, style: str) -> None:
         styles = self.obj_dict["attributes"].get("style", None)
         if not styles and style:
             styles = [style]
@@ -608,35 +724,25 @@ class Node(Common):
 
         self.obj_dict["attributes"]["style"] = ",".join(styles)
 
-    def to_string(self):
+    def to_string(self, indent: Any = "", indent_level: int = 1) -> str:
         """Return string representation of node in DOT language."""
-        # RMF: special case defaults for node, edge and graph properties.
-        #
-        node = quote_if_necessary(self.obj_dict["name"])
+        indent_str = self.get_indent(indent, indent_level)
 
-        node_attr = list()
+        node = quote_id_if_necessary(
+            self.obj_dict["name"], unquoted_keywords=("graph", "node", "edge")
+        )
 
-        for attr in sorted(self.obj_dict["attributes"]):
-            value = self.obj_dict["attributes"][attr]
-            if value == "":
-                value = '""'
-            if value is not None:
-                node_attr.append("%s=%s" % (attr, quote_if_necessary(value)))
-            else:
-                node_attr.append(attr)
-
-        # No point in having nodes setting any defaults if the don't set
-        # any attributes...
-        #
-        if node in ("graph", "node", "edge") and len(node_attr) == 0:
+        # No point in having default nodes that don't set any attributes...
+        if (
+            node in ("graph", "node", "edge")
+            and len(self.obj_dict.get("attributes", {})) == 0
+        ):
             return ""
 
-        node_attr = ", ".join(node_attr)
+        return f"{indent_str}{node}{self.attrs_string(prefix=' ')};"
 
-        if node_attr:
-            node += " [" + node_attr + "]"
 
-        return node + ";"
+__generate_attribute_methods(Node, NODE_ATTRIBUTES)
 
 
 class Edge(Common):
@@ -668,40 +774,66 @@ class Edge(Common):
 
     """
 
-    def __init__(self, src="", dst="", obj_dict=None, **attrs):
-        self.obj_dict = dict()
-        if isinstance(src, (Node, Subgraph, Cluster)):
-            src = src.get_name()
-        if isinstance(dst, (Node, Subgraph, Cluster)):
-            dst = dst.get_name()
-        points = (quote_if_necessary(src), quote_if_necessary(dst))
-        self.obj_dict["points"] = points
+    def __init__(
+        self,
+        src: EdgeDefinition | Sequence[EdgeDefinition] = "",
+        dst: EdgeDefinition = "",
+        obj_dict: AttributeDict | None = None,
+        **attrs: Any,
+    ) -> None:
+        super().__init__(obj_dict)
         if obj_dict is None:
-            # Copy the attributes
+            if isinstance(src, (list, tuple)):
+                _src, _dst = src[0:2]
+            else:
+                _src, _dst = src, dst
+
+            ep0: EdgeEndpoint
+            ep1: EdgeEndpoint
+
+            if isinstance(_src, (Node, Subgraph, Cluster)):
+                ep0 = str(_src.get_name())
+            elif isinstance(_src, (FrozenDict, int, float)):
+                ep0 = _src
+            else:
+                ep0 = str(_src)
+
+            if isinstance(_dst, (Node, Subgraph, Cluster)):
+                ep1 = str(_dst.get_name())
+            elif isinstance(_dst, (FrozenDict, int, float)):
+                ep1 = _dst
+            else:
+                ep1 = str(_dst)
+
+            points = (ep0, ep1)
+
+            self.obj_dict["points"] = points
             self.obj_dict["attributes"] = dict(attrs)
             self.obj_dict["type"] = "edge"
             self.obj_dict["parent_graph"] = None
-            self.obj_dict["parent_edge_list"] = None
             self.obj_dict["sequence"] = None
-        else:
-            self.obj_dict = obj_dict
-        self.create_attribute_methods(EDGE_ATTRIBUTES)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.to_string()
 
-    def get_source(self):
-        """Get the edges source node name."""
-        return self.obj_dict["points"][0]
+    def _get_endpoint(self, position: int) -> EdgeEndpoint:
+        ep = self.obj_dict["points"][position]
+        if isinstance(ep, (FrozenDict, int, float)):
+            return ep
+        return str(ep)
 
-    def get_destination(self):
-        """Get the edge's destination node name."""
-        return self.obj_dict["points"][1]
+    def get_source(self) -> EdgeEndpoint:
+        """Get the edge's source endpoint."""
+        return self._get_endpoint(0)
 
-    def __hash__(self):
+    def get_destination(self) -> EdgeEndpoint:
+        """Get the edge's destination endpoint."""
+        return self._get_endpoint(1)
+
+    def __hash__(self) -> int:
         return hash(hash(self.get_source()) + hash(self.get_destination()))
 
-    def __eq__(self, edge):
+    def __eq__(self, edge: object) -> bool:
         """Compare two edges.
 
         If the parent graph is directed, arcs linking
@@ -713,9 +845,9 @@ class Edge(Common):
         """
 
         if not isinstance(edge, Edge):
-            raise pydot.Error("Can not compare an edge to a non-edge object.")
+            raise rez.vendor.pydot.Error("Can not compare an edge to a non-edge object.")
 
-        if self.get_parent_graph().get_top_graph_type() == "graph":
+        if self.get_top_graph_type() == "graph":
             # If the graph is undirected, the edge has neither
             # source nor destination.
             #
@@ -737,79 +869,69 @@ class Edge(Common):
 
         return False
 
-    def parse_node_ref(self, node_str):
-        if not isinstance(node_str, str):
-            return node_str
+    def parse_node_ref(self, node_ref: EdgeEndpoint) -> EdgeEndpoint:
+        if not isinstance(node_ref, str):
+            return node_ref
 
-        if node_str.startswith('"') and node_str.endswith('"'):
-            return node_str
+        if node_ref.startswith('"') and node_ref.endswith('"'):
+            return node_ref
 
-        node_port_idx = node_str.rfind(":")
+        node_port_idx = node_ref.rfind(":")
 
         if (
             node_port_idx > 0
-            and node_str[0] == '"'
-            and node_str[node_port_idx - 1] == '"'
+            and node_ref[0] == '"'
+            and node_ref[node_port_idx - 1] == '"'
         ):
-            return node_str
+            return node_ref
 
         if node_port_idx > 0:
-            a = node_str[:node_port_idx]
-            b = node_str[node_port_idx + 1 :]
+            a = node_ref[:node_port_idx]
+            b = node_ref[node_port_idx + 1 :]
 
-            node = quote_if_necessary(a)
-            node += ":" + quote_if_necessary(b)
+            node = quote_id_if_necessary(a)
+            node += ":" + quote_id_if_necessary(b)
 
             return node
 
-        return node_str
+        return quote_id_if_necessary(node_ref)
 
-    def to_string(self):
+    def to_string(self, indent: Any = "", indent_level: int = 1) -> str:
         """Return string representation of edge in DOT language."""
         src = self.parse_node_ref(self.get_source())
         dst = self.parse_node_ref(self.get_destination())
 
-        if isinstance(src, frozendict):
-            edge = [Subgraph(obj_dict=src).to_string()]
-        elif isinstance(src, int):
-            edge = [str(src)]
+        indent_str = self.get_indent(indent, indent_level)
+
+        if isinstance(src, FrozenDict):
+            sgraph = Subgraph(obj_dict=src)
+            edge = [
+                sgraph.to_string(
+                    indent=indent, indent_level=indent_level, inline=True
+                )
+            ]
         else:
-            edge = [src]
+            edge = [str(src)]
 
-        if (
-            self.get_parent_graph()
-            and self.get_parent_graph().get_top_graph_type()
-            and self.get_parent_graph().get_top_graph_type() == "digraph"
-        ):
+        if self.get_top_graph_type() == "digraph":
             edge.append("->")
-
         else:
             edge.append("--")
 
-        if isinstance(dst, frozendict):
-            edge.append(Subgraph(obj_dict=dst).to_string())
-        elif isinstance(dst, int):
-            edge.append(str(dst))
+        if isinstance(dst, FrozenDict):
+            sgraph = Subgraph(obj_dict=dst)
+            edge.append(
+                sgraph.to_string(
+                    indent=indent, indent_level=indent_level, inline=True
+                )
+            )
         else:
-            edge.append(dst)
+            edge.append(str(dst))
 
-        edge_attr = list()
+        return f"{indent_str}{' '.join(edge)}{self.attrs_string(prefix=' ')};"
 
-        for attr in sorted(self.obj_dict["attributes"]):
-            value = self.obj_dict["attributes"][attr]
-            if value == "":
-                value = '""'
-            if value is not None:
-                edge_attr.append("%s=%s" % (attr, quote_if_necessary(value)))
-            else:
-                edge_attr.append(attr)
 
-        edge_attr = ", ".join(edge_attr)
-
-        if edge_attr:
-            edge.append(" [" + edge_attr + "]")
-
-        return " ".join(edge) + ";"
+__generate_attribute_methods(Edge, EDGE_ATTRIBUTES)
 
 
 class Graph(Common):
@@ -850,32 +972,25 @@ class Graph(Common):
 
     def __init__(
         self,
-        graph_name="G",
-        obj_dict=None,
-        graph_type="digraph",
-        strict=False,
-        suppress_disconnected=False,
-        simplify=False,
-        **attrs,
-    ):
-        if obj_dict is not None:
-            self.obj_dict = obj_dict
-
-        else:
-            self.obj_dict = dict()
-
+        graph_name: str = "G",
+        obj_dict: AttributeDict | None = None,
+        graph_type: str = "digraph",
+        strict: bool = False,
+        suppress_disconnected: bool = False,
+        simplify: bool = False,
+        **attrs: Any,
+    ) -> None:
+        super().__init__(obj_dict)
+        if obj_dict is None:
             self.obj_dict["attributes"] = dict(attrs)
 
             if graph_type not in ["graph", "digraph"]:
-                raise pydot.Error(
-                    (
-                        'Invalid type "{t}". '
-                        "Accepted graph types are: "
-                        "graph, digraph"
-                    ).format(t=graph_type)
+                raise rez.vendor.pydot.Error(
+                    f'Invalid type "{graph_type}". '
+                    "Accepted graph types are: graph, digraph"
                 )
 
-            self.obj_dict["name"] = quote_if_necessary(graph_name)
+            self.obj_dict["name"] = graph_name
             self.obj_dict["type"] = graph_type
 
             self.obj_dict["strict"] = strict
@@ -883,42 +998,26 @@ class Graph(Common):
             self.obj_dict["simplify"] = simplify
 
             self.obj_dict["current_child_sequence"] = 1
-            self.obj_dict["nodes"] = dict()
-            self.obj_dict["edges"] = dict()
-            self.obj_dict["subgraphs"] = dict()
+            self.obj_dict["nodes"] = {}
+            self.obj_dict["edges"] = {}
+            self.obj_dict["subgraphs"] = {}
 
             self.set_parent_graph(self)
 
-        self.create_attribute_methods(GRAPH_ATTRIBUTES)
-
-    def __str__(self):
+    def __str__(self) -> str:
         return self.to_string()
 
-    def get_graph_type(self):
-        return self.obj_dict["type"]
+    def get_graph_type(self) -> str | None:
+        return self.obj_dict["type"]  # type: ignore
 
-    def get_top_graph_type(self):
-        parent = self
-        while True:
-            parent_ = parent.get_parent_graph()
-            if parent_ == parent:
-                break
-            parent = parent_
-
-        return parent.obj_dict["type"]
-
-    def set_graph_defaults(self, **attrs):
+    def set_graph_defaults(self, **attrs: Any) -> None:
         self.add_node(Node("graph", **attrs))
 
-    def get_graph_defaults(self, **attrs):
+    def get_graph_defaults(self) -> Any:
         graph_nodes = self.get_node("graph")
+        return [node.get_attributes() for node in graph_nodes]
 
-        if isinstance(graph_nodes, (list, tuple)):
-            return [node.get_attributes() for node in graph_nodes]
-
-        return graph_nodes.get_attributes()
-
-    def set_node_defaults(self, **attrs):
+    def set_node_defaults(self, **attrs: Any) -> None:
         """Define default node attributes.
 
         These attributes only apply to nodes added to the graph after
@@ -926,26 +1025,18 @@ class Graph(Common):
         """
         self.add_node(Node("node", **attrs))
 
-    def get_node_defaults(self, **attrs):
+    def get_node_defaults(self) -> Any:
         graph_nodes = self.get_node("node")
+        return [node.get_attributes() for node in graph_nodes]
 
-        if isinstance(graph_nodes, (list, tuple)):
-            return [node.get_attributes() for node in graph_nodes]
-
-        return graph_nodes.get_attributes()
-
-    def set_edge_defaults(self, **attrs):
+    def set_edge_defaults(self, **attrs: Any) -> None:
         self.add_node(Node("edge", **attrs))
 
-    def get_edge_defaults(self, **attrs):
+    def get_edge_defaults(self) -> Any:
         graph_nodes = self.get_node("edge")
+        return [node.get_attributes() for node in graph_nodes]
 
-        if isinstance(graph_nodes, (list, tuple)):
-            return [node.get_attributes() for node in graph_nodes]
-
-        return graph_nodes.get_attributes()
-
-    def set_simplify(self, simplify):
+    def set_simplify(self, simplify: bool) -> None:
         """Set whether to simplify or not.
 
         If True it will avoid displaying equal edges, i.e.
@@ -954,44 +1045,44 @@ class Graph(Common):
         """
         self.obj_dict["simplify"] = simplify
 
-    def get_simplify(self):
+    def get_simplify(self) -> bool:
         """Get whether to simplify or not.
 
         Refer to set_simplify for more information.
         """
-        return self.obj_dict["simplify"]
+        return bool(self.obj_dict.get("simplify", False))
 
-    def set_type(self, graph_type):
+    def set_type(self, graph_type: str) -> None:
         """Set the graph's type, 'graph' or 'digraph'."""
         self.obj_dict["type"] = graph_type
 
-    def get_type(self):
+    def get_type(self) -> str | None:
         """Get the graph's type, 'graph' or 'digraph'."""
-        return self.obj_dict["type"]
+        return self.obj_dict["type"]  # type: ignore
 
-    def set_name(self, graph_name):
+    def set_name(self, graph_name: str) -> None:
         """Set the graph's name."""
         self.obj_dict["name"] = graph_name
 
-    def get_name(self):
+    def get_name(self) -> str | None:
         """Get the graph's name."""
-        return self.obj_dict["name"]
+        return self.obj_dict["name"]  # type: ignore
 
-    def set_strict(self, val):
+    def set_strict(self, val: bool) -> None:
         """Set graph to 'strict' mode.
 
         This option is only valid for top level graphs.
         """
         self.obj_dict["strict"] = val
 
-    def get_strict(self, val):
+    def get_strict(self) -> bool:
         """Get graph's 'strict' mode (True, False).
 
         This option is only valid for top level graphs.
         """
-        return self.obj_dict["strict"]
+        return bool(self.obj_dict.get("strict", False))
 
-    def set_suppress_disconnected(self, val):
+    def set_suppress_disconnected(self, val: bool) -> None:
         """Suppress disconnected nodes in the output graph.
 
         This option will skip nodes in
@@ -1002,19 +1093,19 @@ class Graph(Common):
         """
         self.obj_dict["suppress_disconnected"] = val
 
-    def get_suppress_disconnected(self, val):
+    def get_suppress_disconnected(self) -> bool:
         """Get if suppress disconnected is set.
 
         Refer to set_suppress_disconnected for more information.
         """
-        return self.obj_dict["suppress_disconnected"]
+        return bool(self.obj_dict.get("suppress_disconnected", False))
 
-    def get_next_sequence_number(self):
-        seq = self.obj_dict["current_child_sequence"]
-        self.obj_dict["current_child_sequence"] += 1
+    def get_next_sequence_number(self) -> int:
+        seq: int = self.obj_dict.get("current_child_sequence", 1)
+        self.obj_dict["current_child_sequence"] = seq + 1
         return seq
 
-    def add_node(self, graph_node):
+    def add_node(self, graph_node: Node) -> None:
         """Adds a node object to the graph.
 
         It takes a node object as its only argument and returns
@@ -1033,15 +1124,17 @@ class Graph(Common):
             self.obj_dict["nodes"][graph_node.get_name()] = [
                 graph_node.obj_dict
             ]
-            graph_node.set_parent_graph(self.get_parent_graph())
         else:
             self.obj_dict["nodes"][graph_node.get_name()].append(
                 graph_node.obj_dict
             )
 
+        if not node or graph_node.get_parent_graph() is None:
+            graph_node.set_parent_graph(self.get_parent_graph())
+
         graph_node.set_sequence(self.get_next_sequence_number())
 
-    def del_node(self, name, index=None):
+    def del_node(self, name: str | Node, index: int | None = None) -> bool:
         """Delete a node from the graph.
 
         Given a node's name all node(s) with that same name
@@ -1071,7 +1164,7 @@ class Graph(Common):
 
         return False
 
-    def get_node(self, name):
+    def get_node(self, name: str) -> list[Node]:
         """Retrieve a node from the graph.
 
         Given a node's name the corresponding Node
@@ -1081,7 +1174,7 @@ class Graph(Common):
         Node instances is returned.
         An empty list is returned otherwise.
         """
-        match = list()
+        match = []
 
         if name in self.obj_dict["nodes"]:
             match.extend(
@@ -1093,17 +1186,17 @@ class Graph(Common):
 
         return match
 
-    def get_nodes(self):
+    def get_nodes(self) -> list[Node]:
         """Get the list of Node instances."""
         return self.get_node_list()
 
-    def get_node_list(self):
+    def get_node_list(self) -> list[Node]:
         """Get the list of Node instances.
 
         This method returns the list of Node instances
         composing the graph.
         """
-        node_objs = list()
+        node_objs: list[Node] = []
 
         for node in self.obj_dict["nodes"]:
             obj_dict_list = self.obj_dict["nodes"][node]
@@ -1111,7 +1204,7 @@ class Graph(Common):
 
         return node_objs
 
-    def add_edge(self, graph_edge):
+    def add_edge(self, graph_edge: Edge) -> None:
         """Adds an edge object to the graph.
 
         It takes a edge object as its only argument and returns
@@ -1134,7 +1227,9 @@ class Graph(Common):
         graph_edge.set_sequence(self.get_next_sequence_number())
         graph_edge.set_parent_graph(self.get_parent_graph())
 
-    def del_edge(self, src_or_list, dst=None, index=None):
+    def del_edge(
+        self, src_or_list: Any, dst: Any = None, index: int | None = None
+    ) -> bool:
         """Delete an edge from the graph.
 
         Given an edge's (source, destination) node names all
@@ -1175,7 +1270,7 @@ class Graph(Common):
 
         return False
 
-    def get_edge(self, src_or_list, dst=None):
+    def get_edge(self, src_or_list: Any, dst: Any = None) -> list[Edge]:
         """Retrieved an edge from the graph.
 
         Given an edge's source and destination the corresponding
@@ -1192,7 +1287,7 @@ class Graph(Common):
             edge_points = (src_or_list, dst)
             edge_points_reverse = (dst, src_or_list)
 
-        match = list()
+        match = []
 
         if edge_points in self.obj_dict["edges"] or (
             self.get_top_graph_type() == "graph"
@@ -1212,16 +1307,16 @@ class Graph(Common):
 
         return match
 
-    def get_edges(self):
+    def get_edges(self) -> list[Edge]:
         return self.get_edge_list()
 
-    def get_edge_list(self):
+    def get_edge_list(self) -> list[Edge]:
         """Get the list of Edge instances.
 
         This method returns the list of Edge instances
         composing the graph.
         """
-        edge_objs = list()
+        edge_objs = []
 
         for edge in self.obj_dict["edges"]:
             obj_dict_list = self.obj_dict["edges"][edge]
@@ -1229,7 +1324,7 @@ class Graph(Common):
 
         return edge_objs
 
-    def add_subgraph(self, sgraph):
+    def add_subgraph(self, sgraph: Subgraph) -> None:
         """Adds an subgraph object to the graph.
 
         It takes a subgraph object as its only argument and returns
@@ -1253,7 +1348,7 @@ class Graph(Common):
         sgraph.set_sequence(self.get_next_sequence_number())
         sgraph.set_parent_graph(self.get_parent_graph())
 
-    def get_subgraph(self, name):
+    def get_subgraph(self, name: str) -> list[Subgraph]:
         """Retrieved a subgraph from the graph.
 
         Given a subgraph's name the corresponding
@@ -1263,7 +1358,7 @@ class Graph(Common):
         Subgraph instances is returned.
         An empty list is returned otherwise.
         """
-        match = list()
+        match = []
 
         if name in self.obj_dict["subgraphs"]:
             sgraphs_obj_dict = self.obj_dict["subgraphs"].get(name)
@@ -1273,16 +1368,16 @@ class Graph(Common):
 
         return match
 
-    def get_subgraphs(self):
+    def get_subgraphs(self) -> list[Subgraph]:
         return self.get_subgraph_list()
 
-    def get_subgraph_list(self):
+    def get_subgraph_list(self) -> list[Subgraph]:
         """Get the list of Subgraph instances.
 
         This method returns the list of Subgraph instances
         in the graph.
         """
-        sgraph_objs = list()
+        sgraph_objs = []
 
         for sgraph in self.obj_dict["subgraphs"]:
             obj_dict_list = self.obj_dict["subgraphs"][sgraph]
@@ -1292,7 +1387,7 @@ class Graph(Common):
 
         return sgraph_objs
 
-    def set_parent_graph(self, parent_graph):
+    def set_parent_graph(self, parent_graph: Common | None) -> None:
         self.obj_dict["parent_graph"] = parent_graph
 
         for k in self.obj_dict["nodes"]:
@@ -1310,59 +1405,63 @@ class Graph(Common):
             for obj in obj_list:
                 Graph(obj_dict=obj).set_parent_graph(parent_graph)
 
-    def to_string(self):
+    def to_string(
+        self, indent: Any = "", indent_level: int = 0, inline: bool = False
+    ) -> str:
         """Return string representation of graph in DOT language.
 
         @return: graph and subelements
         @rtype: `str`
         """
-        graph = list()
+        indent_str = self.get_indent(indent, indent_level)
+        child_indent = self.get_indent(indent, indent_level + 1)
 
-        if self.obj_dict.get("strict", None) is not None:
-            if self == self.get_parent_graph() and self.obj_dict["strict"]:
-                graph.append("strict ")
+        graph = []
+
+        if not inline:
+            graph.append(indent_str)
+
+        first_line = []
+
+        if self == self.get_parent_graph() and self.get_strict():
+            first_line.append("strict")
 
         graph_type = self.obj_dict["type"]
-        if graph_type == "subgraph" and not self.obj_dict.get(
-            "show_keyword", True
-        ):
-            graph_type = ""
-        s = "{type} {name} {{\n".format(
-            type=graph_type, name=self.obj_dict["name"]
+        if graph_type != "subgraph" or self.obj_dict.get("show_keyword", True):
+            first_line.append(graph_type)
+
+            # Suppressing the keyword hides the name as well
+            graph_name = self.obj_dict.get("name")
+            if graph_name:
+                first_line.append(quote_id_if_necessary(graph_name))
+
+        first_line.append("{\n")
+        graph.append(" ".join(first_line))
+
+        graph.extend(
+            f"{child_indent}{a};\n" for a in self.formatted_attr_list()
         )
-        graph.append(s)
-
-        for attr in sorted(self.obj_dict["attributes"]):
-            if self.obj_dict["attributes"].get(attr, None) is not None:
-                val = self.obj_dict["attributes"].get(attr)
-                if val == "":
-                    val = '""'
-                if val is not None:
-                    graph.append("%s=%s" % (attr, quote_if_necessary(val)))
-                else:
-                    graph.append(attr)
-
-                graph.append(";\n")
 
         edges_done = set()
 
-        edge_obj_dicts = list()
+        edge_obj_dicts = []
         for k in self.obj_dict["edges"]:
             edge_obj_dicts.extend(self.obj_dict["edges"][k])
 
         if edge_obj_dicts:
-            edge_src_set, edge_dst_set = list(
-                zip(*[obj["points"] for obj in edge_obj_dicts])
+            edge_ep_set = set(
+                itertools.chain.from_iterable(
+                    obj["points"] for obj in edge_obj_dicts
+                )
             )
-            edge_src_set, edge_dst_set = set(edge_src_set), set(edge_dst_set)
         else:
-            edge_src_set, edge_dst_set = set(), set()
+            edge_ep_set = set()
 
-        node_obj_dicts = list()
+        node_obj_dicts = []
         for k in self.obj_dict["nodes"]:
             node_obj_dicts.extend(self.obj_dict["nodes"][k])
 
-        sgraph_obj_dicts = list()
+        sgraph_obj_dicts = []
         for k in self.obj_dict["subgraphs"]:
             sgraph_obj_dicts.extend(self.obj_dict["subgraphs"][k])
 
@@ -1372,35 +1471,47 @@ class Graph(Common):
         ]
         obj_list.sort(key=lambda x: x[0])
 
+        skip_disconnected = self.get_suppress_disconnected()
+        simplify = self.get_simplify()
+
         for idx, obj in obj_list:
             if obj["type"] == "node":
                 node = Node(obj_dict=obj)
 
-                if self.obj_dict.get("suppress_disconnected", False):
-                    if (
-                        node.get_name() not in edge_src_set
-                        and node.get_name() not in edge_dst_set
-                    ):
-                        continue
+                if skip_disconnected and node.get_name() not in edge_ep_set:
+                    continue
 
-                graph.append(node.to_string() + "\n")
+                node_str = node.to_string(
+                    indent=indent, indent_level=indent_level + 1
+                )
+                graph.append(f"{node_str}\n")
 
             elif obj["type"] == "edge":
                 edge = Edge(obj_dict=obj)
 
-                if self.obj_dict.get("simplify", False) and edge in edges_done:
+                if simplify and edge in edges_done:
                     continue
 
-                graph.append(edge.to_string() + "\n")
+                edge_str = edge.to_string(
+                    indent=indent, indent_level=indent_level + 1
+                )
+                graph.append(f"{edge_str}\n")
                 edges_done.add(edge)
 
             else:
-                sgraph = Subgraph(obj_dict=obj)
-                graph.append(sgraph.to_string() + "\n")
+                sgraph_str = Subgraph(obj_dict=obj).to_string(
+                    indent=indent, indent_level=indent_level + 1
+                )
+                graph.append(f"{sgraph_str}")  # No newline, already present
 
-        graph.append("}\n")
+        graph.append(f"{indent_str}}}")
+        if not inline:
+            graph.append("\n")
 
         return "".join(graph)
+
+
+__generate_attribute_methods(Graph, GRAPH_ATTRIBUTES)
 
 
 class Subgraph(Graph):
@@ -1440,21 +1551,19 @@ class Subgraph(Graph):
     #
     def __init__(
         self,
-        graph_name="",
-        obj_dict=None,
-        suppress_disconnected=False,
-        simplify=False,
-        **attrs,
-    ):
-        Graph.__init__(
-            self,
+        graph_name: str = "",
+        obj_dict: AttributeDict | None = None,
+        suppress_disconnected: bool = False,
+        simplify: bool = False,
+        **attrs: Any,
+    ) -> None:
+        super().__init__(
             graph_name=graph_name,
             obj_dict=obj_dict,
             suppress_disconnected=suppress_disconnected,
             simplify=simplify,
             **attrs,
         )
-
         if obj_dict is None:
             self.obj_dict["type"] = "subgraph"
 
@@ -1493,26 +1602,27 @@ class Cluster(Graph):
 
     def __init__(
         self,
-        graph_name="subG",
-        obj_dict=None,
-        suppress_disconnected=False,
-        simplify=False,
-        **attrs,
-    ):
-        Graph.__init__(
-            self,
+        graph_name: str = "subG",
+        obj_dict: AttributeDict | None = None,
+        suppress_disconnected: bool = False,
+        simplify: bool = False,
+        **attrs: Any,
+    ) -> None:
+        super().__init__(
             graph_name=graph_name,
             obj_dict=obj_dict,
             suppress_disconnected=suppress_disconnected,
             simplify=simplify,
             **attrs,
         )
-
         if obj_dict is None:
             self.obj_dict["type"] = "subgraph"
-            self.obj_dict["name"] = quote_if_necessary("cluster_" + graph_name)
+            self.obj_dict["name"] = quote_id_if_necessary(
+                "cluster_" + graph_name
+            )
 
-        self.create_attribute_methods(CLUSTER_ATTRIBUTES)
+
+__generate_attribute_methods(Cluster, CLUSTER_ATTRIBUTES)
 
 
 class Dot(Graph):
@@ -1523,80 +1633,32 @@ class Dot(Graph):
     the base class 'Graph'.
     """
 
-    def __init__(self, *argsl, **argsd):
-        Graph.__init__(self, *argsl, **argsd)
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
-        self.shape_files = list()
-        self.formats = [
-            "canon",
-            "cmap",
-            "cmapx",
-            "cmapx_np",
-            "dia",
-            "dot",
-            "fig",
-            "gd",
-            "gd2",
-            "gif",
-            "hpgl",
-            "imap",
-            "imap_np",
-            "ismap",
-            "jpe",
-            "jpeg",
-            "jpg",
-            "mif",
-            "mp",
-            "pcl",
-            "pdf",
-            "pic",
-            "plain",
-            "plain-ext",
-            "png",
-            "ps",
-            "ps2",
-            "svg",
-            "svgz",
-            "vml",
-            "vmlz",
-            "vrml",
-            "vtx",
-            "wbmp",
-            "xdot",
-            "xlib",
-        ]
-
+        self.shape_files: list[str] = []
+        self.formats = OUTPUT_FORMATS
         self.prog = "dot"
 
-        # Automatically creates all
-        # the methods enabling the creation
-        # of output in any of the supported formats.
-        for frmt in self.formats:
+    def __getstate__(self) -> AttributeDict:
+        state = {
+            "obj_dict": copy.copy(self.obj_dict),
+            "prog": self.prog,
+            "shape_files": copy.deepcopy(self.shape_files),
+            "formats": copy.copy(self.formats),
+        }
+        return state
 
-            def new_method(f=frmt, prog=None, encoding=None):
-                """Refer to docstring of method `create`."""
-                return self.create(format=f, prog=prog, encoding=encoding)
+    def __setstate__(self, state: AttributeDict) -> None:
+        if "obj_dict" not in state:
+            # Backwards compatibility for old picklings
+            state = {"obj_dict": state}
+        self.obj_dict = state.get("obj_dict", {})
+        self.prog = state.get("prog", "dot")
+        self.shape_files = state.get("shape_files", [])
+        self.formats = state.get("formats", OUTPUT_FORMATS)
 
-            name = "create_{fmt}".format(fmt=frmt)
-            self.__setattr__(name, new_method)
-
-        for frmt in self.formats + ["raw"]:
-
-            def new_method(path, f=frmt, prog=None, encoding=None):
-                """Refer to docstring of method `write.`"""
-                self.write(path, format=f, prog=prog, encoding=encoding)
-
-            name = "write_{fmt}".format(fmt=frmt)
-            self.__setattr__(name, new_method)
-
-    def __getstate__(self):
-        dict = copy.copy(self.obj_dict)
-        return dict
-
-    def __setstate__(self, state):
-        self.obj_dict = state
-
-    def set_shape_files(self, file_paths):
+    def set_shape_files(self, file_paths: str | Sequence[str]) -> None:
         """Add the paths of the required image files.
 
         If the graph needs graphic objects to
@@ -1619,7 +1681,7 @@ class Dot(Graph):
         if isinstance(file_paths, (list, tuple)):
             self.shape_files.extend(file_paths)
 
-    def set_prog(self, prog):
+    def set_prog(self, prog: str) -> None:
         """Sets the default program.
 
         Sets the default program in charge of processing
@@ -1627,7 +1689,13 @@ class Dot(Graph):
         """
         self.prog = prog
 
-    def write(self, path, prog=None, format="raw", encoding=None):
+    def write(
+        self,
+        path: str | bytes,
+        prog: str | None = None,
+        format: str = "raw",
+        encoding: str | None = None,
+    ) -> bool:
         """Writes a graph to a file.
 
         Given a filename 'path' it will open/create and truncate
@@ -1656,18 +1724,23 @@ class Dot(Graph):
             prog = self.prog
         if format == "raw":
             s = self.to_string()
-            with io.open(path, mode="wt", encoding=encoding) as f:
+            with open(path, mode="w", encoding=encoding) as f:
                 f.write(s)
         else:
             s = self.create(prog, format, encoding=encoding)
-            with io.open(path, mode="wb") as f:
-                f.write(s)
+            with open(path, mode="wb") as f:
+                f.write(s)  # type: ignore
         return True
 
-    def create(self, prog=None, format="ps", encoding=None):
+    def create(
+        self,
+        prog: list[str] | tuple[str] | str | None = None,
+        format: str = "ps",
+        encoding: str | None = None,
+    ) -> str:
         """Creates and returns a binary image for the graph.
 
-        create will write the graph to a temporary dot file in the
+        create will write the graph to a tempworary dot file in the
         encoding specified by `encoding` and process it with the
         program given by 'prog' (which defaults to 'twopi'), reading
         the binary image output and return it as `bytes`.
@@ -1727,67 +1800,57 @@ class Dot(Graph):
         if isinstance(prog, (list, tuple)):
             prog, args = prog[0], prog[1:]
         else:
-            args = []
+            args = []  # type: ignore
 
         # temp file
-        tmp_fd, tmp_name = tempfile.mkstemp()
-        os.close(tmp_fd)
-        self.write(tmp_name, encoding=encoding)
-        tmp_dir = os.path.dirname(tmp_name)
+        with tempfile.TemporaryDirectory(
+            ignore_cleanup_errors=True
+        ) as tmp_dir:  # type: ignore
+            fp = tempfile.NamedTemporaryFile(dir=tmp_dir, delete=False)
+            fp.close()
+            self.write(fp.name, encoding=encoding)
 
-        # For each of the image files...
-        for img in self.shape_files:
-            # Get its data
-            f = open(img, "rb")
-            f_data = f.read()
-            f.close()
-            # And copy it under a file with the same name in
-            # the temporary directory
-            f = open(os.path.join(tmp_dir, os.path.basename(img)), "wb")
-            f.write(f_data)
-            f.close()
+            # For each of the image files, copy it to the temporary directory
+            # with the same filename as the original
+            for img in self.shape_files:
+                outfile = os.path.join(tmp_dir, os.path.basename(img))
+                with open(img, "rb") as img_in, open(outfile, "wb") as img_out:
+                    img_data = img_in.read()
+                    img_out.write(img_data)
 
-        arguments = ["-T{}".format(format)] + args + [tmp_name]
+            arguments = [f"-T{format}"] + args + [fp.name]  # type: ignore
 
-        try:
-            stdout_data, stderr_data, process = call_graphviz(
-                program=prog,
-                arguments=arguments,
-                working_dir=tmp_dir,
-            )
-        except OSError as e:
-            if e.errno == errno.ENOENT:
-                args = list(e.args)
-                args[1] = '"{prog}" not found in path.'.format(prog=prog)
-                raise OSError(*args)
-            else:
-                raise
-
-        # clean file litter
-        for img in self.shape_files:
-            os.unlink(os.path.join(tmp_dir, os.path.basename(img)))
-
-        os.unlink(tmp_name)
+            try:
+                stdout_data, stderr_data, process = call_graphviz(
+                    program=prog,
+                    arguments=arguments,
+                    working_dir=tmp_dir,
+                )
+            except OSError as e:
+                if e.errno == errno.ENOENT:
+                    args = list(e.args)  # type: ignore
+                    args[1] = f'"{prog}" not found in path.'  # type: ignore
+                    raise OSError(*args)
+                else:
+                    raise
 
         if process.returncode != 0:
-            message = (
-                '"{prog}" with args {arguments} returned code: {code}\n\n'
-                "stdout, stderr:\n {out}\n{err}\n"
-            ).format(
-                prog=prog,
-                arguments=arguments,
-                code=process.returncode,
-                out=stdout_data,
-                err=stderr_data,
+            code = process.returncode
+            print(
+                f'"{prog}" with args {arguments} returned code: {code}\n\n'
+                f"stdout, stderr:\n {stdout_data}\n{stderr_data}\n"
             )
-            print(message)
 
-        assert (
-            process.returncode == 0
-        ), '"{prog}" with args {arguments} returned code: {code}'.format(
-            prog=prog,
-            arguments=arguments,
-            code=process.returncode,
+        assert process.returncode == 0, (
+            f'"{prog}" with args {arguments} '
+            f"returned code: {process.returncode}"
         )
 
         return stdout_data
+
+
+__generate_format_methods(Dot)
+
+
+# Type alias for forward-referenced type
+EdgeDefinition = Union[EdgeEndpoint, Node, Subgraph, Cluster]
