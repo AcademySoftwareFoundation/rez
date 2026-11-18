@@ -88,19 +88,6 @@ Updated (April 2025) to help address py3.12 update.
 
 <!-- ######################################################### -->
 <tr><td>
-enum
-</td><td>
-?
-</td><td>
-BSD
-</td><td>
-https://pypi.org/project/enum34/<br>
-By looking at the code, it's probably enum34. If so, the latest version is
-1.1.6 (May 15, 2016)
-</td></tr>
-
-<!-- ######################################################### -->
-<tr><td>
 importlib-metadata
 </td><td>
 6.7.0
@@ -156,11 +143,12 @@ Added (July 2019) to enable PEP440 compatible versions handling.
 <tr><td>
 pika
 </td><td>
-1.2.0 (Feb 5, 2021)
+1.5.0 (Nov 17, 2026)
 </td><td>
 BSD 3-Clause
 </td><td>
-https://github.com/pika/pika
+https://github.com/pika/pika<br>
+Updated (Nov 2026)
 </td></tr>
 
 
