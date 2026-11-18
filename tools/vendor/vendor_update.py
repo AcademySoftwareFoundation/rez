@@ -12,8 +12,10 @@ import os
 import re
 import shutil
 import socket
+import subprocess
 import sys
 import tarfile
+import tempfile
 import urllib.request
 import zipfile
 
@@ -286,6 +288,123 @@ def apply_layout(staging_dir, pkg_spec):
                 f.write(b"")
 
 
+def apply_overlays(staging_dir, overlay_dir):
+    """Copy overlay files into ``staging_dir``, overwriting existing files."""
+    if not overlay_dir or not os.path.isdir(overlay_dir):
+        return
+    for dp, _, fns in os.walk(overlay_dir):
+        rel_dir = os.path.relpath(dp, overlay_dir)
+        for fn in fns:
+            src = os.path.join(dp, fn)
+            dst_dir = staging_dir if rel_dir == "." else os.path.join(staging_dir, rel_dir)
+            os.makedirs(dst_dir, exist_ok=True)
+            shutil.copy2(src, os.path.join(dst_dir, fn))
+
+
+def apply_patch(staging_dir, patch_path):
+    """Apply a unified diff patch file inside ``staging_dir`` via ``git apply``."""
+    if not patch_path or not os.path.isfile(patch_path):
+        return
+    res = subprocess.run(
+        ["git", "apply", "--no-index", "--whitespace=nowarn", os.path.abspath(patch_path)],
+        cwd=staging_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if res.returncode != 0:
+        raise VendorError(f"Patch failed ({patch_path}):\n{res.stderr or res.stdout}")
+
+
+def replace_target_dir(staging_dir, target_dir):
+    """Remove ``target_dir`` completely and replace it with ``staging_dir`` contents."""
+    if os.path.exists(target_dir):
+        shutil.rmtree(target_dir)
+    shutil.copytree(staging_dir, target_dir)
+
+
+def _snapshot_files(root_dir):
+    out = {}
+    if not os.path.isdir(root_dir):
+        return out
+    for dp, _, fns in os.walk(root_dir):
+        if os.path.basename(dp) == "__pycache__":
+            continue
+        for fn in fns:
+            fp = os.path.join(dp, fn)
+            rel = os.path.relpath(fp, root_dir).replace(os.sep, "/")
+            with open(fp, "rb") as f:
+                out[rel] = f.read()
+    return out
+
+
+def compare_dirs(staging_dir, target_dir):
+    """Return list of mismatch descriptions between ``staging_dir`` and ``target_dir``."""
+    expected = _snapshot_files(staging_dir)
+    actual = _snapshot_files(target_dir)
+    diffs = []
+    for k in sorted(set(expected) | set(actual)):
+        if k not in actual:
+            diffs.append(f"missing in target: {k}")
+        elif k not in expected:
+            diffs.append(f"extra in target: {k}")
+        elif expected[k] != actual[k]:
+            diffs.append(f"byte mismatch: {k} (staged={len(expected[k])}B, target={len(actual[k])}B)")
+    return diffs
+
+
+def process_package(name, spec, vendor_dir, cache_dir, tools_dir, verify=False):
+    """Fetch, extract, transform, and either verify or replace ``vendor_dir/<name>``."""
+    source_kind = spec.get("source", "pypi")
+    if source_kind == "pypi":
+        pypi_name = spec.get("pypi_name", name)
+        version = spec["version"]
+        url, expected_sha = resolve_pypi_artifact(
+            pypi_name,
+            version,
+            min_python=MIN_PYTHON,
+            prefer=spec.get("prefer", "sdist"),
+        )
+        if spec.get("sha256") and spec["sha256"].lower() != expected_sha.lower():
+            raise VendorError(f"Manifest sha256 mismatch for {name}: {spec['sha256']} != {expected_sha}")
+        filename = os.path.basename(url.split("?", 1)[0])
+    elif source_kind == "url":
+        url = spec["url"]
+        expected_sha = spec["sha256"]
+        filename = spec.get("filename") or os.path.basename(url.split("?", 1)[0])
+    else:
+        raise VendorError(f"Unknown source kind {source_kind!r} for {name}")
+
+    archive_path = fetch_cached(url, cache_dir, filename)
+    verify_sha256(archive_path, expected_sha)
+
+    with tempfile.TemporaryDirectory() as td:
+        staging = os.path.join(td, name)
+        extract_source_archive(
+            archive_path,
+            staging,
+            strip_prefix=spec.get("strip_prefix", ""),
+            extra_files=spec.get("extra_files"),
+            drop_globs=spec.get("drop", ()),
+            allow_binaries=spec.get("allow_binaries", ()),
+        )
+        apply_layout(staging, spec)
+        rewrite_directory_imports(staging, spec.get("rewrite_imports"))
+
+        overlay_dir = os.path.join(tools_dir, "overlays", name)
+        apply_overlays(staging, overlay_dir)
+
+        patch_file = spec.get("patch")
+        if patch_file:
+            apply_patch(staging, os.path.join(tools_dir, patch_file))
+
+        target_dir = os.path.join(vendor_dir, name)
+        if verify:
+            return compare_dirs(staging, target_dir)
+        replace_target_dir(staging, target_dir)
+        return []
+
+
 class VendorError(RuntimeError):
     """Raised when vendoring fails validation, fetching, or patching."""
 
@@ -392,7 +511,44 @@ def main(argv=None):
     if not os.path.exists(args.manifest):
         print(f"Manifest not found: {args.manifest}", file=sys.stderr)
         return 1
-    return 0
+    with open(args.manifest, "r", encoding="utf-8") as f:
+        manifest = json.load(f)
+    packages_map = manifest.get("packages", {})
+    selected = args.packages or list(packages_map.keys())
+    unknown = [p for p in selected if p not in packages_map]
+    if unknown:
+        print(f"Unknown package(s): {', '.join(unknown)}", file=sys.stderr)
+        return 1
+
+    tools_dir = os.path.dirname(os.path.abspath(__file__))
+    failures = 0
+    for name in selected:
+        try:
+            diffs = process_package(
+                name,
+                packages_map[name],
+                args.vendor_dir,
+                args.cache_dir,
+                tools_dir,
+                verify=args.verify,
+            )
+            if args.verify:
+                if diffs:
+                    failures += 1
+                    print(f"FAIL {name}:")
+                    for d in diffs:
+                        print(f"  - {d}")
+                else:
+                    print(f"OK   {name}")
+            else:
+                print(f"UPDATED {name}")
+        except VendorError as exc:
+            failures += 1
+            print(f"ERROR {name}: {exc}", file=sys.stderr)
+
+    if args.verify and failures == 0:
+        print(f"{len(selected)}/{len(selected)} packages verified: 1:1 byte-for-byte parity")
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":

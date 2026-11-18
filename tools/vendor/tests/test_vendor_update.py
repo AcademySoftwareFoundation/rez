@@ -219,5 +219,56 @@ class TestImportRewriterAndLayout(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(td, "schema.py")))
 
 
+class TestOverlayPatchAndParity(unittest.TestCase):
+    def test_overlay_and_patch_applied(self):
+        with tempfile.TemporaryDirectory() as td:
+            staging = os.path.join(td, "staging")
+            overlay = os.path.join(td, "overlay")
+            os.makedirs(staging)
+            os.makedirs(overlay)
+            with open(os.path.join(staging, "mod.py"), "w", encoding="utf-8", newline="\n") as f:
+                f.write("x = 1\n")
+            with open(os.path.join(overlay, "LICENSE"), "w", encoding="utf-8", newline="\n") as f:
+                f.write("MIT\n")
+            patch_file = os.path.join(td, "mod.patch")
+            with open(patch_file, "w", encoding="utf-8", newline="\n") as f:
+                f.write("--- a/mod.py\n+++ b/mod.py\n@@ -1 +1 @@\n-x = 1\n+x = 2\n")
+            vendor_update.apply_overlays(staging, overlay)
+            vendor_update.apply_patch(staging, patch_file)
+            with open(os.path.join(staging, "mod.py"), "r", encoding="utf-8") as f:
+                self.assertEqual(f.read(), "x = 2\n")
+            with open(os.path.join(staging, "LICENSE"), "r", encoding="utf-8") as f:
+                self.assertEqual(f.read(), "MIT\n")
+
+    def test_clean_replace_removes_stale_files(self):
+        with tempfile.TemporaryDirectory() as td:
+            staging = os.path.join(td, "staging")
+            target = os.path.join(td, "target")
+            os.makedirs(staging)
+            os.makedirs(target)
+            with open(os.path.join(staging, "new.py"), "w", encoding="utf-8") as f:
+                f.write("ok\n")
+            with open(os.path.join(target, "stale.py"), "w", encoding="utf-8") as f:
+                f.write("old\n")
+            vendor_update.replace_target_dir(staging, target)
+            self.assertTrue(os.path.exists(os.path.join(target, "new.py")))
+            self.assertFalse(os.path.exists(os.path.join(target, "stale.py")))
+
+    def test_verify_dir_parity_detects_mismatch_without_mutating(self):
+        with tempfile.TemporaryDirectory() as td:
+            staging = os.path.join(td, "staging")
+            target = os.path.join(td, "target")
+            os.makedirs(staging)
+            os.makedirs(target)
+            with open(os.path.join(staging, "a.py"), "w", encoding="utf-8") as f:
+                f.write("x = 2\n")
+            with open(os.path.join(target, "a.py"), "w", encoding="utf-8") as f:
+                f.write("x = 1\n")
+            diffs = vendor_update.compare_dirs(staging, target)
+            self.assertTrue(len(diffs) > 0)
+            with open(os.path.join(target, "a.py"), "r", encoding="utf-8") as f:
+                self.assertEqual(f.read(), "x = 1\n")
+
+
 if __name__ == "__main__":
     unittest.main()
