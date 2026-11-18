@@ -4,9 +4,16 @@
 """Deterministic vendored-dependency updater and verifier for rez."""
 
 import argparse
+import fnmatch
+import hashlib
+import json
 import os
 import re
+import socket
 import sys
+import tarfile
+import urllib.request
+import zipfile
 
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -14,8 +21,141 @@ DEFAULT_MANIFEST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "man
 DEFAULT_VENDOR_DIR = os.path.join(REPO_ROOT, "src", "rez", "vendor")
 DEFAULT_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
 MIN_PYTHON = (3, 8)
+BANNED_BINARY_EXTS = {".so", ".pyd", ".dll", ".dylib", ".exe"}
 
 _SPEC_RE = re.compile(r"^\s*(===|==|!=|<=|>=|~=|<|>)\s*([0-9]+(?:\.[0-9]+)*(?:\.\*)?)\s*$")
+_ORIG_GETADDRINFO = socket.getaddrinfo
+
+
+def _ipv4_getaddrinfo(*args, **kwargs):
+    res = _ORIG_GETADDRINFO(*args, **kwargs)
+    v4 = [r for r in res if r[0] == socket.AF_INET]
+    return v4 if v4 else res
+
+
+def fetch_bytes(url, timeout=30):
+    """Fetch URL bytes, falling back to IPv4 if IPv6 stalls."""
+    req = urllib.request.Request(url, headers={"User-Agent": "rez-vendor-update/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.read()
+    except (TimeoutError, OSError):
+        socket.getaddrinfo = _ipv4_getaddrinfo
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.read()
+        finally:
+            socket.getaddrinfo = _ORIG_GETADDRINFO
+
+
+def fetch_cached(url, cache_dir, filename):
+    """Return path to cached file for ``url``, downloading if absent."""
+    os.makedirs(cache_dir, exist_ok=True)
+    dest = os.path.join(cache_dir, filename)
+    if not os.path.exists(dest):
+        data = fetch_bytes(url)
+        with open(dest, "wb") as f:
+            f.write(data)
+    return dest
+
+
+def verify_sha256(path, expected_sha256):
+    """Verify file SHA256 matches ``expected_sha256``."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    actual = h.hexdigest()
+    if actual.lower() != expected_sha256.lower():
+        raise VendorError(f"SHA256 mismatch for {path}: expected {expected_sha256}, got {actual}")
+
+
+def resolve_pypi_artifact(name, version, min_python=MIN_PYTHON, prefer="sdist"):
+    """Resolve an sdist or pure-Python wheel from PyPI JSON metadata."""
+    meta = json.loads(fetch_bytes(f"https://pypi.org/pypi/{name}/{version}/json"))
+    req_py = meta.get("info", {}).get("requires_python")
+    if not is_python_compatible(req_py, min_python):
+        raise VendorError(
+            f"{name}=={version} requires_python={req_py!r} is incompatible with {min_python[0]}.{min_python[1]}"
+        )
+    sdists = []
+    pure_wheels = []
+    for entry in meta.get("urls", []):
+        pt = entry.get("packagetype")
+        fn = entry.get("filename", "")
+        if pt == "sdist":
+            sdists.append((entry["url"], entry["digests"]["sha256"]))
+        elif pt == "bdist_wheel" and fn.endswith("-none-any.whl"):
+            pure_wheels.append((entry["url"], entry["digests"]["sha256"]))
+    ordered = (sdists + pure_wheels) if prefer == "sdist" else (pure_wheels + sdists)
+    if not ordered:
+        raise VendorError(f"No sdist or pure-Python (*-none-any.whl) artifact found for {name}=={version}")
+    return ordered[0]
+
+
+def _is_safe_relpath(rel):
+    if not rel or rel.startswith("/") or "\\" in rel:
+        return False
+    parts = rel.split("/")
+    return all(p not in ("", ".", "..") for p in parts)
+
+
+def _matches_any_glob(rel, globs):
+    return any(fnmatch.fnmatch(rel, g) for g in (globs or ()))
+
+
+def _iter_archive_entries(archive_path):
+    if archive_path.endswith((".tar.gz", ".tgz")):
+        with tarfile.open(archive_path, "r:gz") as tf:
+            for m in tf.getmembers():
+                if m.isfile():
+                    yield m.name, tf.extractfile(m).read()
+    elif archive_path.endswith((".zip", ".whl")):
+        with zipfile.ZipFile(archive_path, "r") as zf:
+            for info in zf.infolist():
+                if not info.is_dir():
+                    yield info.filename, zf.read(info.filename)
+    else:
+        raise VendorError(f"Unsupported archive format: {archive_path}")
+
+
+def extract_source_archive(
+    archive_path,
+    staging_dir,
+    strip_prefix="",
+    extra_files=None,
+    drop_globs=(),
+    allow_binaries=(),
+):
+    """Extract source-only/pure-Python files from archive into ``staging_dir``."""
+    os.makedirs(staging_dir, exist_ok=True)
+    extra_map = {v: k for k, v in (extra_files or {}).items()}
+    entries = list(_iter_archive_entries(archive_path))
+
+    for raw_name, data in entries:
+        norm_name = raw_name.replace("\\", "/")
+        if norm_name in extra_map:
+            rel = extra_map[norm_name]
+        elif strip_prefix:
+            if not norm_name.startswith(strip_prefix):
+                continue
+            rel = norm_name[len(strip_prefix) :]
+        else:
+            rel = norm_name
+
+        if not _is_safe_relpath(rel):
+            raise VendorError(f"Unsafe archive member path: {raw_name!r}")
+        if _matches_any_glob(rel, drop_globs):
+            continue
+
+        _, ext = os.path.splitext(rel)
+        if ext.lower() in BANNED_BINARY_EXTS and not _matches_any_glob(rel, allow_binaries):
+            raise VendorError(f"Disallowed binary artifact in {archive_path}: {rel}")
+
+        dest = os.path.join(staging_dir, rel.replace("/", os.sep))
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        with open(dest, "wb") as f:
+            f.write(data)
 
 
 class VendorError(RuntimeError):

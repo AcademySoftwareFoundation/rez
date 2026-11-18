@@ -1,9 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright Contributors to the Rez Project
 
+import hashlib
+import io
+import json
 import os
 import sys
+import tarfile
+import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vendor_update
@@ -29,6 +35,137 @@ class TestVendorUpdateCLI(unittest.TestCase):
         self.assertFalse(vendor_update.is_python_compatible(">=3.10", (3, 8)))
         self.assertFalse(vendor_update.is_python_compatible("~=3.9", (3, 8)))
         self.assertTrue(vendor_update.is_python_compatible(">=2.7, !=3.0.*, !=3.1.*", (3, 8)))
+
+
+def _make_tar_gz(entries):
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        for name, data in entries.items():
+            ti = tarfile.TarInfo(name=name)
+            ti.size = len(data)
+            tf.addfile(ti, io.BytesIO(data))
+    return buf.getvalue()
+
+
+class TestSourceFetcherAndExtractor(unittest.TestCase):
+    def test_verify_sha256_mismatch_raises(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = os.path.join(td, "pkg.tar.gz")
+            with open(p, "wb") as f:
+                f.write(b"hello")
+            good = hashlib.sha256(b"hello").hexdigest()
+            vendor_update.verify_sha256(p, good)
+            with self.assertRaises(vendor_update.VendorError):
+                vendor_update.verify_sha256(p, "0" * 64)
+
+    def test_rejects_compiled_binary_unless_allowlisted(self):
+        with tempfile.TemporaryDirectory() as td:
+            arc_so = os.path.join(td, "bad.tar.gz")
+            with open(arc_so, "wb") as f:
+                f.write(_make_tar_gz({"pkg-1.0/pkg/__init__.py": b"", "pkg-1.0/pkg/ext.so": b"ELF"}))
+            with self.assertRaises(vendor_update.VendorError):
+                vendor_update.extract_source_archive(arc_so, os.path.join(td, "out1"), strip_prefix="pkg-1.0/pkg/")
+
+            arc_exe = os.path.join(td, "distlib.tar.gz")
+            with open(arc_exe, "wb") as f:
+                f.write(
+                    _make_tar_gz({"distlib-0.3.9/distlib/__init__.py": b"", "distlib-0.3.9/distlib/t64.exe": b"MZ"})
+                )
+            with self.assertRaises(vendor_update.VendorError):
+                vendor_update.extract_source_archive(
+                    arc_exe, os.path.join(td, "out2"), strip_prefix="distlib-0.3.9/distlib/"
+                )
+            out3 = os.path.join(td, "out3")
+            vendor_update.extract_source_archive(
+                arc_exe, out3, strip_prefix="distlib-0.3.9/distlib/", allow_binaries=["*.exe"]
+            )
+            self.assertTrue(os.path.exists(os.path.join(out3, "t64.exe")))
+
+    def test_rejects_path_traversal(self):
+        with tempfile.TemporaryDirectory() as td:
+            arc = os.path.join(td, "trav.tar.gz")
+            with open(arc, "wb") as f:
+                f.write(_make_tar_gz({"pkg-1.0/pkg/../../evil.py": b"x"}))
+            with self.assertRaises(vendor_update.VendorError):
+                vendor_update.extract_source_archive(arc, os.path.join(td, "out"), strip_prefix="pkg-1.0/pkg/")
+
+    def test_extra_files_and_drop_globs(self):
+        with tempfile.TemporaryDirectory() as td:
+            arc = os.path.join(td, "pkg.tar.gz")
+            with open(arc, "wb") as f:
+                f.write(
+                    _make_tar_gz(
+                        {
+                            "pkg-1.0/LICENSE": b"MIT",
+                            "pkg-1.0/src/pkg/__init__.py": b"x = 1\n",
+                            "pkg-1.0/src/pkg/tests/test_a.py": b"pass\n",
+                        }
+                    )
+                )
+            out = os.path.join(td, "out")
+            vendor_update.extract_source_archive(
+                arc,
+                out,
+                strip_prefix="pkg-1.0/src/pkg/",
+                extra_files={"LICENSE": "pkg-1.0/LICENSE"},
+                drop_globs=["tests/*"],
+            )
+            self.assertTrue(os.path.exists(os.path.join(out, "__init__.py")))
+            self.assertTrue(os.path.exists(os.path.join(out, "LICENSE")))
+            self.assertFalse(os.path.exists(os.path.join(out, "tests", "test_a.py")))
+
+    def test_resolve_pypi_artifact_gates(self):
+        meta_py39 = json.dumps(
+            {
+                "info": {"requires_python": ">=3.9"},
+                "urls": [
+                    {
+                        "packagetype": "sdist",
+                        "filename": "a-1.0.tar.gz",
+                        "url": "https://x/a.tar.gz",
+                        "digests": {"sha256": "abc"},
+                    }
+                ],
+            }
+        ).encode()
+        with mock.patch.object(vendor_update, "fetch_bytes", return_value=meta_py39):
+            with self.assertRaises(vendor_update.VendorError):
+                vendor_update.resolve_pypi_artifact("a", "1.0", min_python=(3, 8))
+
+        meta_bin_whl = json.dumps(
+            {
+                "info": {"requires_python": ">=3.8"},
+                "urls": [
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "a-1.0-cp313-cp313-linux_x86_64.whl",
+                        "url": "https://x/a.whl",
+                        "digests": {"sha256": "abc"},
+                    }
+                ],
+            }
+        ).encode()
+        with mock.patch.object(vendor_update, "fetch_bytes", return_value=meta_bin_whl):
+            with self.assertRaises(vendor_update.VendorError):
+                vendor_update.resolve_pypi_artifact("a", "1.0", min_python=(3, 8))
+
+        meta_pure_whl = json.dumps(
+            {
+                "info": {"requires_python": ">=3.8"},
+                "urls": [
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "a-1.0-py3-none-any.whl",
+                        "url": "https://x/a.whl",
+                        "digests": {"sha256": "def"},
+                    }
+                ],
+            }
+        ).encode()
+        with mock.patch.object(vendor_update, "fetch_bytes", return_value=meta_pure_whl):
+            url, sha = vendor_update.resolve_pypi_artifact("a", "1.0", min_python=(3, 8))
+            self.assertEqual(url, "https://x/a.whl")
+            self.assertEqual(sha, "def")
 
 
 if __name__ == "__main__":
