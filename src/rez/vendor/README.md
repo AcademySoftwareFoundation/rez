@@ -181,12 +181,12 @@ Updated (April 2025) to help address py3.12 update.
 <tr><td>
 pydot
 </td><td>
-2.0.0 (Dec 30, 2023)
+4.0.1 (Jun 17, 2025)
 </td><td>
 MIT
 </td><td>
 https://github.com/pydot/pydot<br>
-Updated (Sept 2025)
+Updated (Nov 2026)
 </td></tr>
 
 <!-- ######################################################### -->
