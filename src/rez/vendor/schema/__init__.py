@@ -441,14 +441,29 @@ class Schema(object):
             return type(data)(o.validate(d, **kwargs) for d in data)
         if flavor == DICT:
             exitstack = ExitStack()
-            data = Schema(dict, error=e).validate(data, **kwargs)
+            # REZ: Inline dict instance check instead of allocating Schema(dict).
+            if not isinstance(data, dict):
+                raise SchemaError(
+                    "%r should be instance of 'dict'" % data,
+                    e.format(data) if e else None,
+                )
             new: Dict = type(data)()  # new - is a dict of the validated values
             coverage: Set = set()  # matched schema keys
-            # for each key and value find a schema entry matching them, if any
-            sorted_skeys = sorted(s, key=self._dict_key_priority)
-            for skey in sorted_skeys:
+            for skey in s:
                 if hasattr(skey, "reset"):
                     exitstack.callback(skey.reset)
+
+            # REZ: Build O(1) lookup map for literal string schema keys (skipping Hook keys
+            # like Forbidden so hook evaluation order is preserved).
+            schema_key_map: Dict[str, Any] = {}
+            if not any(isinstance(k, Hook) for k in s):
+                for skey in s:
+                    key_name = skey
+                    while type(key_name) in (Schema, Optional, Literal):
+                        key_name = key_name._schema
+                    if isinstance(key_name, str) and key_name not in schema_key_map:
+                        schema_key_map[key_name] = skey
+            sorted_skeys = None
 
             with exitstack:
                 # Evaluate dictionaries last
@@ -456,6 +471,27 @@ class Schema(object):
                     data.items(), key=lambda value: isinstance(value[1], dict)
                 )
                 for key, value in data_items:
+                    if isinstance(key, str) and key in schema_key_map:
+                        skey = schema_key_map[key]
+                        svalue = s[skey]
+                        try:
+                            nvalue = Schema(
+                                svalue, error=e, ignore_extra_keys=i
+                            ).validate(value, **kwargs)
+                        except SchemaError as x:
+                            k = "Key '%s' error:" % key
+                            message = self._prepend_schema_name(k)
+                            raise SchemaError(
+                                [message] + x.autos,
+                                [e.format(data) if e else None] + x.errors,
+                            )
+                        else:
+                            new[key] = nvalue
+                            coverage.add(skey)
+                        continue
+
+                    if sorted_skeys is None:
+                        sorted_skeys = sorted(s, key=self._dict_key_priority)
                     for skey in sorted_skeys:
                         svalue = s[skey]
                         try:
