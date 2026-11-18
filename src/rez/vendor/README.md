@@ -217,12 +217,13 @@ Updated (Sept 2025)
 <tr><td>
 schema
 </td><td>
-0.3.1 (Apr 28, 2014) (https://github.com/keleshev/schema/blob/916ba05e22b7b370b3586f97c40695e7b9e7fe33)
+0.7.8 (Oct 11, 2025)
 </td><td>
 MIT
 </td><td>
 https://github.com/keleshev/schema<br>
-Our version is patched.
+Updated (Nov 2026). Dropped upstream test_schema.py (switched to pytest) in
+favor of rez-native unittest coverage in src/rez/tests/test_schema.py.
 </td></tr>
 
 <!-- ######################################################### -->
