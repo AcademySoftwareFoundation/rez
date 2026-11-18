@@ -27,12 +27,12 @@ tested.
 <tr><td>
 argcomplete
 </td><td>
-3.6.3 (Oct 19, 2025)
+3.7.0 (Jun 30, 2026)
 </td><td>
 Apache 2.0
 </td><td>
 https://github.com/kislyuk/argcomplete<br>
-Updated (May 2026)
+Updated (Nov 2026)
 </td></tr>
 
 <!-- ######################################################### -->
@@ -65,12 +65,12 @@ Updated (April 2025) to help address py3.12 update.
 <tr><td>
 distlib
 </td><td>
-0.3.9 (Oct 29, 2024)
+0.4.4 (Oct 16, 2026)
 </td><td>
 PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
 </td><td>
 https://bitbucket.org/pypa/distlib/src/master/<br>
-Updated (April 2025) to help address py3.12 update.
+Updated (Nov 2026)
 </td></tr>
 
 <!-- ######################################################### -->
@@ -168,13 +168,13 @@ https://github.com/pika/pika
 <tr><td>
 progress
 </td><td>
-1.6 (July 28, 2021)
+1.6.1 (Jul 1, 2025)
 </td><td>
 ISC
 </td><td>
 https://github.com/verigak/progress<br>
 No changes.<br>
-Updated (April 2025) to help address py3.12 update.
+Updated (Nov 2026)
 </td></tr>
 
 <!-- ######################################################### -->
@@ -255,13 +255,13 @@ Dependency for importlib-metadata. Can be dropped once we drop support for Pytho
 yaml (PyYAML)
 
 </td><td>
-6.0.1 (July 17, 2023)
+6.0.3 (Sep 25, 2025)
 </td><td>
 MIT
 </td><td>
 https://github.com/yaml/pyyaml<br>
-No changes. Bounded to 6.0.1 by current py3.7.<br>
-Updated (April 2025) to help address py3.12 update.
+No changes.<br>
+Updated (Nov 2026)
 </td></tr>
 
 <!-- ######################################################### -->
