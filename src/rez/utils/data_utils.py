@@ -11,7 +11,7 @@ import os.path
 import json
 import functools
 
-from rez.vendor.schema.schema import Schema, Optional
+from rez.vendor.schema import Schema, Optional
 from threading import Lock
 from typing import Any, Callable, Generic, MutableMapping, TypeVar, TYPE_CHECKING
 

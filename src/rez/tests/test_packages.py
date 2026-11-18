@@ -19,7 +19,7 @@ from rez.package_repository import package_repository_manager
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.formatting import PackageRequest
 from rez.utils.sourcecode import SourceCode
-from rez.vendor.schema.schema import Schema, SchemaError
+from rez.vendor.schema import Schema, SchemaError
 import unittest
 from unittest.mock import patch
 from rez.version import Version

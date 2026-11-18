@@ -17,7 +17,7 @@ from rez.utils.platform_ import platform_
 from rez.config import config
 from rez.utils.which import which
 from rez.utils.filesystem import real_path
-from rez.vendor.schema.schema import Or
+from rez.vendor.schema import Or
 from rez.shells import create_shell
 import argparse
 import functools
