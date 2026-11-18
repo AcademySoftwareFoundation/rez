@@ -1,0 +1,91 @@
+diff --git a/__init__.py b/__init__.py
+index 8c2ee51..6a68a7e 100644
+--- a/__init__.py
++++ b/__init__.py
+@@ -41,8 +41,8 @@ C{pygraph.algorithms.heuristics}.
+ A quick introductory example:
+ 
+ >>> # Import the module and instantiate a graph object
+->>> from pygraph.classes.graph import graph
+->>> from pygraph.algorithms.searching import depth_first_search
++>>> from rez.vendor.pygraph.classes.graph import graph
++>>> from rez.vendor.pygraph.algorithms.searching import depth_first_search
+ >>> gr = graph()
+ >>> # Add nodes
+ >>> gr.add_nodes(['X','Y','Z'])
+@@ -60,4 +60,4 @@ A quick introductory example:
+ {'A': 'B', 'C': 'A', 'B': 'Y', 'Y': 'X', 'X': None, 'Z': 'X'}
+ """
+ 
+-__import__('pkg_resources').declare_namespace(__name__)
++#__import__('pkg_resources').declare_namespace(__name__)
+diff --git a/algorithms/__init__.py b/algorithms/__init__.py
+index f17ac5e..6d00219 100644
+--- a/algorithms/__init__.py
++++ b/algorithms/__init__.py
+@@ -28,4 +28,4 @@ Algorithms
+ This subpackage contains a set of modules, each one of them containing some algorithms.
+ """
+ 
+-__import__('pkg_resources').declare_namespace(__name__)
++#__import__('pkg_resources').declare_namespace(__name__)
+diff --git a/algorithms/filters/__init__.py b/algorithms/filters/__init__.py
+index ad7986e..f903283 100644
+--- a/algorithms/filters/__init__.py
++++ b/algorithms/filters/__init__.py
+@@ -26,4 +26,4 @@
+ Set of searching filters.
+ """
+ 
+-__import__('pkg_resources').declare_namespace(__name__)
++#__import__('pkg_resources').declare_namespace(__name__)
+diff --git a/algorithms/heuristics/__init__.py b/algorithms/heuristics/__init__.py
+index 2f7ca4d..9ca1773 100644
+--- a/algorithms/heuristics/__init__.py
++++ b/algorithms/heuristics/__init__.py
+@@ -29,4 +29,4 @@ Set of search heuristics.
+ These are to be used with the C{heuristic_search()} function.
+ """
+ 
+-__import__('pkg_resources').declare_namespace(__name__)
++#__import__('pkg_resources').declare_namespace(__name__)
+diff --git a/algorithms/minmax.py b/algorithms/minmax.py
+index 4d5481f..41955f9 100644
+--- a/algorithms/minmax.py
++++ b/algorithms/minmax.py
+@@ -132,13 +132,6 @@ def _lightest_edge(graph, visited):
+ 
+ # Shortest Path
+ 
+-def path(st, target):
+-    if (target is None):
+-        return []
+-    else:
+-        return [target] + path(st, st[target])
+-
+-
+ def shortest_path(graph, source):
+     """
+     Return the shortest path distance between source and all other nodes using Dijkstra's
+diff --git a/mixins/__init__.py b/mixins/__init__.py
+index 54c514e..5c9cc22 100644
+--- a/mixins/__init__.py
++++ b/mixins/__init__.py
+@@ -30,4 +30,4 @@ Base classes used to compose the the graph classes.
+ The classes in this namespace should not be used directly.
+ """
+ 
+-__import__('pkg_resources').declare_namespace(__name__)
++#__import__('pkg_resources').declare_namespace(__name__)
+diff --git a/readwrite/__init__.py b/readwrite/__init__.py
+index 01815a4..763b251 100644
+--- a/readwrite/__init__.py
++++ b/readwrite/__init__.py
+@@ -28,4 +28,4 @@ Readwrite algorithms.
+ Algorithms for reading and writing graphs.
+ """
+ 
+-__import__('pkg_resources').declare_namespace(__name__)
+\ No newline at end of file
++#__import__('pkg_resources').declare_namespace(__name__)
+\ No newline at end of file

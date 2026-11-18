@@ -1,0 +1,26 @@
+diff --git a/scripts/activate_global_python_argcomplete.py b/scripts/activate_global_python_argcomplete.py
+index 6d22875..8441167 100644
+--- a/scripts/activate_global_python_argcomplete.py
++++ b/scripts/activate_global_python_argcomplete.py
+@@ -15,7 +15,7 @@ import site
+ import subprocess
+ import sys
+ 
+-import argcomplete
++import rez.vendor.argcomplete as argcomplete
+ 
+ # PEP 366
+ __package__ = "argcomplete.scripts"
+diff --git a/scripts/register_python_argcomplete.py b/scripts/register_python_argcomplete.py
+index 1e68029..a60cf14 100644
+--- a/scripts/register_python_argcomplete.py
++++ b/scripts/register_python_argcomplete.py
+@@ -26,7 +26,7 @@ For Fish
+ import argparse
+ import sys
+ 
+-import argcomplete
++import rez.vendor.argcomplete as argcomplete
+ 
+ # PEP 366
+ __package__ = "argcomplete.scripts"
