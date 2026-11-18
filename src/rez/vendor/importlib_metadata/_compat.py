@@ -1,18 +1,7 @@
-import os
-import sys
 import platform
+import sys
 
-from typing import Union
-
-
-__all__ = ['install', 'NullFinder', 'Protocol']
-
-
-try:
-    from typing import Protocol
-except ImportError:  # pragma: no cover
-    # Python 3.7 compatibility
-    from rez.vendor.typing_extensions.typing_extensions import Protocol  # type: ignore
+__all__ = ['install', 'NullFinder']
 
 
 def install(cls):
@@ -48,7 +37,7 @@ def disable_stdlib_finder():
 
 class NullFinder:
     """
-    A "Finder" (aka "MetaClassFinder") that never finds any modules,
+    A "Finder" (aka "MetaPathFinder") that never finds any modules,
     but may find distributions.
     """
 
@@ -65,10 +54,3 @@ def pypy_partial(val):
     """
     is_pypy = platform.python_implementation() == 'PyPy'
     return val + is_pypy
-
-
-if sys.version_info >= (3, 9):
-    StrPath = Union[str, os.PathLike[str]]
-else:
-    # PathLike is only subscriptable at runtime in 3.9+
-    StrPath = Union[str, "os.PathLike[str]"]  # pragma: no cover
