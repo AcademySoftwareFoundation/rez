@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     # this is not available in typing until 3.11, but due to __future__.annotations
     # we can use it without really importing it
     from typing import Self
-    from rez.vendor.schema.schema import Schema
+    from rez.vendor.schema import Schema
     from rez.package_repository import PackageRepository
 
 

@@ -17,7 +17,7 @@ from rez.system import system
 from rez.utils.logging_ import print_debug
 from rez.utils.scope import scoped_formatter
 from rez.utils.formatting import expandvars
-from rez.vendor.schema.schema import Schema, Or, Optional, Use, And
+from rez.vendor.schema import Schema, Or, Optional, Use, And
 from rez.util import which
 
 

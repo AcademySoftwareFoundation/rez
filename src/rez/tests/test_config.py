@@ -205,7 +205,7 @@ class TestConfig(TestBase):
     def test_6(self) -> None:
         """Test setting of dict values from environ"""
         from rez.config import Dict
-        from rez.vendor.schema.schema import Schema
+        from rez.vendor.schema import Schema
 
         class TestConfig(Config):
             schema = Schema({

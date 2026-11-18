@@ -16,7 +16,7 @@ from rez.package_resources import help_schema, _commands_schema, \
 from rez.package_repository import create_memory_package_repository
 from rez.packages import Package, Variant
 from rez.package_py_utils import expand_requirement
-from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
+from rez.vendor.schema import Schema, Optional, Or, Use, And
 from rez.version import Version
 from contextlib import contextmanager
 import os
