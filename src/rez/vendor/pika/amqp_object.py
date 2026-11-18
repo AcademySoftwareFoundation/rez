@@ -1,71 +1,81 @@
-"""Base classes that are extended by low level AMQP frames and higher level
-AMQP classes and methods.
-
+"""Base classes that are extended by low level AMQP frames and higher level AMQP classes and
+methods.
 """
 
+from __future__ import annotations
 
-class AMQPObject(object):
-    """Base object that is extended by AMQP low level frames and AMQP classes
-    and methods.
+from rez.vendor.pika._utils import override
 
-    """
-    NAME = 'AMQPObject'
-    INDEX = None
 
-    def __repr__(self):
-        items = list()
+class AMQPObject:
+    """Base object that is extended by AMQP low level frames and AMQP classes and methods."""
+
+    NAME: str = 'AMQPObject'
+    INDEX: int | None = None
+
+    @override
+    def __repr__(self) -> str:
+        items = []
         for key, value in self.__dict__.items():
             if getattr(self.__class__, key, None) != value:
-                items.append('%s=%s' % (key, value))
+                items.append(f'{key}={value}')
         if not items:
-            return "<%s>" % self.NAME
-        return "<%s(%s)>" % (self.NAME, sorted(items))
+            return f'<{self.NAME}>'
+        return f'<{self.NAME}({sorted(items)})>'
 
-    def __eq__(self, other):
+    @override
+    def __eq__(self, other: object) -> bool:
         if other is not None:
             return self.__dict__ == other.__dict__
-        else:
-            return False
+        return False
 
 
 class Class(AMQPObject):
-    """Is extended by AMQP classes"""
-    NAME = 'Unextended Class'
+    """Is extended by AMQP classes."""
+
+    NAME: str = 'Unextended Class'
 
 
 class Method(AMQPObject):
-    """Is extended by AMQP methods"""
-    NAME = 'Unextended Method'
-    synchronous = False
+    """Is extended by AMQP methods."""
 
-    def _set_content(self, properties, body):
-        """If the method is a content frame, set the properties and body to
-        be carried as attributes of the class.
+    NAME: str = 'Unextended Method'
+    synchronous: bool = False
 
-        :param pika.frame.Properties properties: AMQP Basic Properties
-        :param bytes body: The message body
-
+    def _set_content(self, properties: Properties, body: bytes) -> None:
         """
-        self._properties = properties  # pylint: disable=W0201
-        self._body = body  # pylint: disable=W0201
+        If the method is a content frame, set the properties and body to be carried as attributes of
+        the class.
 
-    def get_properties(self):
-        """Return the properties if they are set.
-
-        :rtype: pika.frame.Properties
-
+        :param properties: AMQP Basic Properties
+        :param body: The message body
         """
+        self._properties = properties
+        self._body = body
+
+    def get_properties(self) -> Properties:
+        """Return the properties if they are set."""
         return self._properties
 
-    def get_body(self):
-        """Return the message body if it is set.
-
-        :rtype: str|unicode
-
-        """
+    def get_body(self) -> bytes:
+        """Return the message body if it is set."""
         return self._body
+
+    def encode(self) -> list[bytes]:
+        """Encode the method into a binary format."""
+        raise NotImplementedError('Subclasses must implement this method')
+
+    def decode(self, encoded: bytes, offset: int = 0) -> Method:
+        """
+        Decode the method from a binary format.
+
+        :param encoded: The encoded method data
+        :param offset: The offset to start decoding from
+        """
+        raise NotImplementedError('Subclasses must implement this method')
 
 
 class Properties(AMQPObject):
     """Class to encompass message properties (AMQP Basic.Properties)"""
-    NAME = 'Unextended Properties'
+
+    NAME: str = 'Unextended Properties'

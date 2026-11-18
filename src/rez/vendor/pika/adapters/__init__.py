@@ -11,13 +11,26 @@ Pika provides multiple adapters to connect to RabbitMQ:
   Gevent.
 - adapters.select_connection.SelectConnection: A native event based connection
   adapter that implements select, kqueue, poll and epoll.
+- adapters.thread_safe_connection.Connection: A native event based connection
+  adapter that implements select, kqueue, poll and epoll, and is thread safe.
 - adapters.tornado_connection.TornadoConnection: Connection adapter for use
   with the Tornado web framework.
 - adapters.twisted_connection.TwistedProtocolConnection: Connection adapter for
   use with the Twisted framework
 
 """
+
+from rez.vendor.pika.adapters.asyncio_connection import AsyncioConnection
 from rez.vendor.pika.adapters.base_connection import BaseConnection
 from rez.vendor.pika.adapters.blocking_connection import BlockingConnection
-from rez.vendor.pika.adapters.select_connection import SelectConnection
-from rez.vendor.pika.adapters.select_connection import IOLoop
+from rez.vendor.pika.adapters.select_connection import IOLoop, SelectConnection
+from rez.vendor.pika.adapters.thread_safe_connection import Connection
+
+__all__ = [
+    'AsyncioConnection',
+    'BaseConnection',
+    'BlockingConnection',
+    'Connection',
+    'IOLoop',
+    'SelectConnection',
+]
