@@ -24,7 +24,7 @@ from contextlib import contextmanager
 
 from rez.config import config
 from rez.exceptions import PackageCacheError
-from rez.vendor.lockfile import LockFile, NotLocked
+from rez.vendor.filelock import FileLock, SoftFileLock
 from rez.vendor.progress.spinner import PixelSpinner
 from rez.utils.filesystem import forceful_rmtree, safe_listdir, safe_remove
 from rez.utils.colorize import ColorizedStreamHandler
@@ -841,16 +841,19 @@ class PackageCache(object):
     @contextmanager
     def _lock(self) -> Iterator[None]:
         lock_filepath = os.path.join(self._sys_dir, ".lock")
-        lock = LockFile(lock_filepath)
+        lock = FileLock(lock_filepath)
 
         try:
-            lock.acquire(timeout=self._FILELOCK_TIMEOUT)
+            try:
+                lock.acquire(timeout=self._FILELOCK_TIMEOUT)
+            except NotImplementedError:
+                # Fall back to O_CREAT|O_EXCL locking on filesystems without flock support.
+                lock = SoftFileLock(lock_filepath + ".soft")
+                lock.acquire(timeout=self._FILELOCK_TIMEOUT)
             yield
         finally:
-            try:
+            if lock.is_locked:
                 lock.release()
-            except NotLocked:
-                pass
 
     def _run_caching_step(self, state, wait_for_copying: bool = False) -> bool:
         logger = state["logger"]

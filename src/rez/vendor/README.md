@@ -113,15 +113,14 @@ Pinned to 6.7.0 to support Python 3.7. This dependency can be dropped once we dr
 
 <!-- ######################################################### -->
 <tr><td>
-lockfile
+filelock
 </td><td>
-0.9.1 (Sep 19, 2010)
+3.16.1 (Sep 17, 2024)
 </td><td>
-MIT
+Unlicense
 </td><td>
-https://github.com/openstack-archive/pylockfile<br>
-Deprecated project, recommends upgrading to
-https://github.com/harlowja/fasteners
+https://github.com/tox-dev/py-filelock<br>
+Added (Nov 2026) to replace deprecated lockfile.
 </td></tr>
 
 <!-- ######################################################### -->
