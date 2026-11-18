@@ -393,3 +393,40 @@ class TestPackageCache(TestBase, TempdirMixin):
              patch.object(c, "_get_package_cache", return_value=pkgcache) as mock_get_cache:
             c._update_package_cache()
             mock_get_cache.assert_called_once()
+
+    def test_lock_acquire_and_release(self):
+        """_lock acquires and releases cleanly and can be re-entered sequentially."""
+        pkgcache = self._pkgcache()
+        with pkgcache._lock():
+            pass
+        with pkgcache._lock():
+            pass
+
+    def test_lock_timeout_when_held(self):
+        """_lock raises filelock.Timeout when another lock holder exceeds timeout."""
+        from rez.vendor.filelock import FileLock, Timeout
+
+        pkgcache = self._pkgcache()
+        lock_filepath = os.path.join(pkgcache._sys_dir, ".lock")
+        holder = FileLock(lock_filepath)
+        holder.acquire(timeout=1)
+        try:
+            with patch.object(pkgcache, "_FILELOCK_TIMEOUT", 0.1):
+                with self.assertRaises(Timeout):
+                    with pkgcache._lock():
+                        pass
+        finally:
+            holder.release()
+
+    def test_lock_falls_back_to_soft_filelock_on_not_implemented(self):
+        """_lock falls back to SoftFileLock when FileLock raises NotImplementedError."""
+        pkgcache = self._pkgcache()
+        soft_lock_path = os.path.join(pkgcache._sys_dir, ".lock.soft")
+
+        with patch("rez.package_cache.FileLock") as mock_filelock:
+            mock_filelock.return_value.acquire.side_effect = NotImplementedError("no flock")
+            mock_filelock.return_value.is_locked = False
+            with pkgcache._lock():
+                self.assertTrue(os.path.exists(soft_lock_path))
+
+        self.assertFalse(os.path.exists(soft_lock_path))

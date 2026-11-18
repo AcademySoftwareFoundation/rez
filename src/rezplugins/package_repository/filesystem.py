@@ -473,7 +473,7 @@ class FileSystemPackageRepository(PackageRepository):
     """
     schema_dict = {"file_lock_timeout": int,
                    "file_lock_dir": Or(None, str),
-                   "file_lock_type": Or("default", "link", "mkdir", "symlink"),
+                   "file_lock_type": Or("default", "link", "mkdir", "symlink", "soft"),
                    "package_filenames": [str]}
 
     # Memoization cache for samefile() fallback in get_resource_from_handle.
@@ -1019,16 +1019,7 @@ class FileSystemPackageRepository(PackageRepository):
 
     @contextmanager
     def _lock_package(self, package_name: str, package_version: str | Version | None = None) -> Iterator[None]:
-        from rez.vendor.lockfile import NotLocked
-
-        if _settings.file_lock_type == 'default':
-            from rez.vendor.lockfile import LockFile
-        elif _settings.file_lock_type == 'mkdir':
-            from rez.vendor.lockfile.mkdirlockfile import MkdirLockFile as LockFile
-        elif _settings.file_lock_type == 'link':
-            from rez.vendor.lockfile.linklockfile import LinkLockFile as LockFile
-        elif _settings.file_lock_type == 'symlink':
-            from rez.vendor.lockfile.symlinklockfile import SymlinkLockFile as LockFile
+        from rez.vendor.filelock import FileLock, SoftFileLock
 
         path = self.location
 
@@ -1045,17 +1036,25 @@ class FileSystemPackageRepository(PackageRepository):
             filename += "-%s" % str(package_version)
 
         lock_file = os.path.join(path, filename)
-        lock = LockFile(lock_file)
+        timeout = _settings.file_lock_timeout if _settings.file_lock_timeout > 0 else -1
+
+        if _settings.file_lock_type == 'default':
+            lock = FileLock(lock_file)
+        else:
+            lock = SoftFileLock(lock_file)
 
         try:
-            lock.acquire(timeout=_settings.file_lock_timeout)
+            try:
+                lock.acquire(timeout=timeout)
+            except NotImplementedError:
+                # Fall back to O_CREAT|O_EXCL locking on filesystems without flock support.
+                lock = SoftFileLock(lock_file + ".soft")
+                lock.acquire(timeout=timeout)
             yield
 
         finally:
-            try:
+            if lock.is_locked:
                 lock.release()
-            except NotLocked:
-                pass
 
     def clear_caches(self) -> None:
         super(FileSystemPackageRepository, self).clear_caches()
