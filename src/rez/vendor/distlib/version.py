@@ -176,18 +176,21 @@ class Matcher(object):
         return self._string
 
 
-PEP440_VERSION_RE = re.compile(r'^v?(\d+!)?(\d+(\.\d+)*)((a|alpha|b|beta|c|rc|pre|preview)(\d+)?)?'
-                               r'(\.(post|r|rev)(\d+)?)?([._-]?(dev)(\d+)?)?'
-                               r'(\+([a-zA-Z\d]+(\.[a-zA-Z\d]+)?))?$', re.I)
+PEP440_VERSION_RE = re.compile(r'^v?([0-9]+!)?([0-9]+(\.[0-9]+)*)((a|alpha|b|beta|c|rc|pre|preview)([0-9]+)?)?'
+                               r'(\.(post|r|rev)([0-9]+)?)?([._-]?(dev)([0-9]+)?)?'
+                               r'(\+([a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*))?$', re.I | getattr(re, 'ASCII', 0))
+
+_PRE_RELEASE_TAGS = {'alpha': 'a', 'beta': 'b', 'c': 'rc', 'pre': 'rc', 'preview': 'rc'}
 
 
-def _pep_440_key(s):
+def _pep_440_key(s, match=None, release=None):
+    """Return the comparison key, optionally reusing the parsed release tuple and regex match."""
     s = s.strip()
-    m = PEP440_VERSION_RE.match(s)
-    if not m:
+    m = match if match is not None else PEP440_VERSION_RE.match(s)
+    if m is None:
         raise UnsupportedVersionError('Not a valid version: %s' % s)
     groups = m.groups()
-    nums = tuple(int(v) for v in groups[1].split('.'))
+    nums = release if release is not None else tuple(map(int, groups[1].split('.')))
     while len(nums) > 1 and nums[-1] == 0:
         nums = nums[:-1]
 
@@ -202,29 +205,31 @@ def _pep_440_key(s):
     if pre == (None, None):
         pre = ()
     else:
+        letter = pre[0].lower()
+        letter = _PRE_RELEASE_TAGS.get(letter, letter)
         if pre[1] is None:
-            pre = pre[0], 0
+            pre = letter, 0
         else:
-            pre = pre[0], int(pre[1])
+            pre = letter, int(pre[1])
     if post == (None, None):
         post = ()
     else:
         if post[1] is None:
-            post = post[0], 0
+            post = 'post', 0
         else:
-            post = post[0], int(post[1])
+            post = 'post', int(post[1])
     if dev == (None, None):
         dev = ()
     else:
         if dev[1] is None:
-            dev = dev[0], 0
+            dev = 'dev', 0
         else:
-            dev = dev[0], int(dev[1])
+            dev = 'dev', int(dev[1])
     if local is None:
         local = ()
     else:
         parts = []
-        for part in local.split('.'):
+        for part in local.lower().replace('_', '.').replace('-', '.').split('.'):
             # to ensure that numeric compares as > lexicographic, avoid
             # comparing them directly, but encode a tuple which ensures
             # correct sorting
@@ -272,21 +277,23 @@ class NormalizedVersion(Version):
         1.2.3b
     """
     def parse(self, s):
-        result = _normalized_key(s)
+        m = PEP440_VERSION_RE.match(s)
+        if not m:
+            raise UnsupportedVersionError('Not a valid version: %s' % s)
+        release = tuple(map(int, m.groups()[1].split('.')))
+        result = _normalized_key(s, match=m, release=release)
         # _normalized_key loses trailing zeroes in the release
         # clause, since that's needed to ensure that X.Y == X.Y.0 == X.Y.0.0
         # However, PEP 440 prefix matching needs it: for example,
         # (~= 1.4.5.0) matches differently to (~= 1.4.5.0.0).
-        m = PEP440_VERSION_RE.match(s)      # must succeed
-        groups = m.groups()
-        self._release_clause = tuple(int(v) for v in groups[1].split('.'))
+        self._release_clause = release
         return result
 
     PREREL_TAGS = set(['a', 'b', 'c', 'rc', 'dev'])
 
     @property
     def is_prerelease(self):
-        return any(t[0] in self.PREREL_TAGS for t in self._parts if t)
+        return self._parts[2][0] in self.PREREL_TAGS or self._parts[4][0] == 'dev'
 
 
 def _match_prefix(x, y):
@@ -676,8 +683,14 @@ def _semantic_key(s):
         raise UnsupportedVersionError(s)
     groups = m.groups()
     major, minor, patch = [int(i) for i in groups[:3]]
-    # choose the '|' and '*' so that versions sort correctly
-    pre, build = make_tuple(groups[3], '|'), make_tuple(groups[5], '*')
+    # Numeric prerelease identifiers compare numerically, below nonnumeric ones.
+    # An absent prerelease sorts above either kind of identifier.
+    if groups[3] is None:
+        pre = ((2,),)
+    else:
+        pre = tuple((0, int(p)) if p.isdigit() else (1, p)
+                    for p in groups[3][1:].split('.'))
+    build = make_tuple(groups[5], '*')
     return (major, minor, patch), pre, build
 
 
@@ -687,7 +700,7 @@ class SemanticVersion(Version):
 
     @property
     def is_prerelease(self):
-        return self._parts[1][0] != '|'
+        return self._parts[1][0] != (2,)
 
 
 class SemanticMatcher(Matcher):
