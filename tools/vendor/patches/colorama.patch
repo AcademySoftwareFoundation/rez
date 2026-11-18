@@ -1,0 +1,57 @@
+diff --git a/tests/ansitowin32_test.py b/tests/ansitowin32_test.py
+index 91ca551..deeffdc 100644
+--- a/tests/ansitowin32_test.py
++++ b/tests/ansitowin32_test.py
+@@ -8,9 +8,12 @@ except ImportError:
+     from contextlib2 import ExitStack
+ 
+ try:
+-    from unittest.mock import MagicMock, Mock, patch
++    from rez.vendor.mock import MagicMock, Mock, patch
+ except ImportError:
+-    from mock import MagicMock, Mock, patch
++    try:
++        from unittest.mock import MagicMock, Mock, patch
++    except ImportError:
++        from mock import MagicMock, Mock, patch
+ 
+ from ..ansitowin32 import AnsiToWin32, StreamWrapper
+ from ..win32 import ENABLE_VIRTUAL_TERMINAL_PROCESSING
+diff --git a/tests/initialise_test.py b/tests/initialise_test.py
+index 89f9b07..6363edf 100644
+--- a/tests/initialise_test.py
++++ b/tests/initialise_test.py
+@@ -3,9 +3,12 @@ import sys
+ from unittest import TestCase, main, skipUnless
+ 
+ try:
+-    from unittest.mock import patch, Mock
++    from rez.vendor.mock import patch, Mock
+ except ImportError:
+-    from mock import patch, Mock
++    try:
++        from unittest.mock import patch, Mock
++    except ImportError:
++        from mock import patch, Mock
+ 
+ from ..ansitowin32 import StreamWrapper
+ from ..initialise import init, just_fix_windows_console, _wipe_internal_state_for_tests
+diff --git a/tests/winterm_test.py b/tests/winterm_test.py
+index d0955f9..388538c 100644
+--- a/tests/winterm_test.py
++++ b/tests/winterm_test.py
+@@ -3,9 +3,12 @@ import sys
+ from unittest import TestCase, main, skipUnless
+ 
+ try:
+-    from unittest.mock import Mock, patch
++    from rez.vendor.mock import Mock, patch
+ except ImportError:
+-    from mock import Mock, patch
++    try:
++        from unittest.mock import Mock, patch
++    except ImportError:
++        from mock import Mock, patch
+ 
+ from ..winterm import WinColor, WinStyle, WinTerm
+ 

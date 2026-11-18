@@ -1,6 +1,16 @@
 {
   "min_python": "3.8",
   "packages": {
+    "argcomplete": {
+      "source": "pypi",
+      "version": "3.6.3",
+      "sha256": "62e8ed4fd6a45864acc8235409461b72c9a28ee785a2011cc5eb78318786c89c",
+      "strip_prefix": "argcomplete-3.6.3/argcomplete/",
+      "extra_files": {
+        "LICENSE.rst": "argcomplete-3.6.3/LICENSE.rst"
+      },
+      "patch": "patches/argcomplete.patch"
+    },
     "atomicwrites": {
       "source": "pypi",
       "version": "1.4.1",
@@ -9,6 +19,16 @@
       "extra_files": {
         "LICENSE": "atomicwrites-1.4.1/LICENSE"
       }
+    },
+    "colorama": {
+      "source": "pypi",
+      "version": "0.4.6",
+      "sha256": "08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44",
+      "strip_prefix": "colorama-0.4.6/colorama/",
+      "extra_files": {
+        "LICENSE.txt": "colorama-0.4.6/LICENSE.txt"
+      },
+      "patch": "patches/colorama.patch"
     },
     "distlib": {
       "source": "pypi",
@@ -44,6 +64,20 @@
       ],
       "patch": "patches/enum.patch"
     },
+    "importlib_metadata": {
+      "source": "pypi",
+      "pypi_name": "importlib-metadata",
+      "version": "6.7.0",
+      "sha256": "1aaf550d4f73e5d6783e7acb77aec43d49da8017410afae93822cc9cca98c4d4",
+      "strip_prefix": "importlib_metadata-6.7.0/importlib_metadata/",
+      "extra_files": {
+        "LICENSE": "importlib_metadata-6.7.0/LICENSE"
+      },
+      "rewrite_imports": {
+        "zipp": "rez.vendor.zipp",
+        "typing_extensions": "rez.vendor.typing_extensions.typing_extensions"
+      }
+    },
     "lockfile": {
       "source": "pypi",
       "version": "0.9.1",
@@ -76,6 +110,19 @@
       },
       "patch": "patches/memcache.patch"
     },
+    "packaging": {
+      "source": "pypi",
+      "version": "19.0",
+      "sha256": "0c98a5d0be38ed775798ece1b9727178c4469d9c3b4ada66e8e6b7849f8732af",
+      "strip_prefix": "packaging-19.0/packaging/",
+      "extra_files": {
+        "LICENSE": "packaging-19.0/LICENSE.BSD"
+      },
+      "rewrite_imports": {
+        "pyparsing": "rez.vendor.pyparsing",
+        "six": "rez.vendor.six.six"
+      }
+    },
     "progress": {
       "source": "pypi",
       "version": "1.6",
@@ -83,6 +130,20 @@
       "strip_prefix": "progress-1.6/progress/",
       "extra_files": {
         "LICENSE": "progress-1.6/LICENSE"
+      }
+    },
+    "pydot": {
+      "source": "pypi",
+      "version": "2.0.0",
+      "sha256": "60246af215123fa062f21cd791be67dda23a6f280df09f68919e637a1e4f3235",
+      "strip_prefix": "pydot-2.0.0/src/pydot/",
+      "extra_files": {
+        "LICENSE": "pydot-2.0.0/LICENSE",
+        "README.md": "pydot-2.0.0/README.md"
+      },
+      "rewrite_imports": {
+        "pydot": "rez.vendor.pydot",
+        "pyparsing": "rez.vendor.pyparsing"
       }
     },
     "pyparsing": {
