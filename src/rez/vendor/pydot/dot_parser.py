@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 pydot contributors
+#
+# SPDX-License-Identifier: MIT
+
 """Graphviz's dot language parser.
 
 The dotparser parses GraphViz files in
@@ -7,33 +11,48 @@ into a class representation defined by `pydot`.
 Author: Michael Krause <michael@krause-software.de>
 Fixes by: Ero Carrera <ero.carrera@gmail.com>
 """
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
 from rez.vendor.pyparsing import (
     CaselessLiteral,
-    CharsNotIn,
     Combine,
+    DelimitedList,
     Forward,
     Group,
     Literal,
     OneOrMore,
     Optional,
     ParseException,
+    ParserElement,
     ParseResults,
     QuotedString,
+    Token,
     Word,
+    autoname_elements,
     cStyleComment,
+    lineno,
     nums,
-    pyparsing_unicode,
     restOfLine,
+    unicode,
 )
 
-from rez.vendor import pydot
+import rez.vendor.pydot.core
+from rez.vendor.pydot.classes import FrozenDict
 
 __author__ = ["Michael Krause", "Ero Carrera"]
 __license__ = "MIT"
 
 
-class P_AttrList(object):
-    def __init__(self, toks):
+_logger = logging.getLogger(__name__)
+_logger.debug("pydot dot_parser module initializing")
+
+
+class P_AttrList:
+    def __init__(self, toks: ParseResults) -> None:
         self.attrs = {}
         i = 0
 
@@ -48,477 +67,340 @@ class P_AttrList(object):
 
             self.attrs[attrname] = attrvalue
 
-    def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self.attrs)
+    def __repr__(self) -> str:
+        name = self.__class__.__name__
+        return f"{name}({self.attrs!r})"
 
 
 class DefaultStatement(P_AttrList):
-    def __init__(self, default_type, attrs):
+    def __init__(self, default_type: str, attrs: Any) -> None:
         self.default_type = default_type
         self.attrs = attrs
 
-    def __repr__(self):
-        return "%s(%s, %r)" % (
-            self.__class__.__name__,
-            self.default_type,
-            self.attrs,
+    def __repr__(self) -> str:
+        name = self.__class__.__name__
+        return f"{name}({self.default_type}, {self.attrs!r})"
+
+
+class HTML(Token):
+    """Parsing for HTML-like strings."""
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def parseImpl(
+        self, instring: str, loc: int, do_actions: bool = True
+    ) -> tuple[int, str]:
+        open_loc = loc
+        if not (loc < len(instring) and instring[loc] == "<"):
+            raise ParseException(instring, loc, "expected <", self)
+        num_open = 1
+        loc += 1
+        while loc < len(instring):
+            if instring[loc] == "<":
+                num_open += 1
+            elif instring[loc] == ">":
+                num_open -= 1
+            loc += 1
+            if num_open == 0:
+                return loc, instring[open_loc:loc]
+        raise ParseException(
+            instring,
+            loc,
+            "HTML: expected '>' to match '<' "
+            + f"on line {lineno(open_loc, instring)}",
+            self,
         )
 
 
-top_graphs = list()
+def push_top_graph_stmt(toks: ParseResults) -> list[rez.vendor.pydot.core.Dot]:
+    top_graphs = []
 
+    for result in toks.graphs:
+        assert isinstance(result, ParseResults)
+        gtype = result.gtype
+        strict = "strict" in result
+        id_ = str(result.id)
 
-def push_top_graph_stmt(s, loc, toks):
-    attrs = {}
-    g = None
-
-    for element in toks:
-        if (
-            isinstance(element, (ParseResults, tuple, list))
-            and len(element) == 1
-            and isinstance(element[0], str)
-        ):
-            element = element[0]
-
-        if element == "strict":
-            attrs["strict"] = True
-
-        elif element in ["graph", "digraph"]:
-            attrs = {}
-
-            g = pydot.Dot(graph_type=element, **attrs)
-            attrs["type"] = element
-
-            top_graphs.append(g)
-
-        elif isinstance(element, str):
-            g.set_name(element)
-
-        elif isinstance(element, pydot.Subgraph):
-            g.obj_dict["attributes"].update(element.obj_dict["attributes"])
-            g.obj_dict["edges"].update(element.obj_dict["edges"])
-            g.obj_dict["nodes"].update(element.obj_dict["nodes"])
-            g.obj_dict["subgraphs"].update(element.obj_dict["subgraphs"])
-
-            g.set_parent_graph(g)
-
-        elif isinstance(element, P_AttrList):
-            attrs.update(element.attrs)
-
-        elif isinstance(element, (ParseResults, list)):
-            add_elements(g, element)
-
-        else:
-            raise ValueError(
-                "Unknown element statement: {s}".format(s=element)
-            )
-
-    for g in top_graphs:
+        g = rez.vendor.pydot.core.Dot(id_, graph_type=gtype, strict=strict)
+        g.set_parent_graph(g)
+        if isinstance(result.contents, ParseResults):
+            add_elements(g, result.contents)
         update_parent_graph_hierarchy(g)
-
-    if len(top_graphs) == 1:
-        return top_graphs[0]
+        top_graphs.append(g)
 
     return top_graphs
 
 
-def update_parent_graph_hierarchy(g, parent_graph=None, level=0):
-    if parent_graph is None:
-        parent_graph = g
-
-    for key_name in ("edges",):
-        if isinstance(g, pydot.frozendict):
-            item_dict = g
-        else:
-            item_dict = g.obj_dict
-
-        if key_name not in item_dict:
-            continue
-
-        for key, objs in item_dict[key_name].items():
-            for obj in objs:
-                if (
-                    "parent_graph" in obj
-                    and obj["parent_graph"].get_parent_graph() == g
-                ):
-                    if obj["parent_graph"] is g:
-                        pass
-                    else:
-                        obj["parent_graph"].set_parent_graph(parent_graph)
-
-                if key_name == "edges" and len(key) == 2:
-                    for idx, vertex in enumerate(obj["points"]):
-                        if isinstance(
-                            vertex,
-                            (pydot.Graph, pydot.Subgraph, pydot.Cluster),
-                        ):
-                            vertex.set_parent_graph(parent_graph)
-                        if isinstance(vertex, pydot.frozendict):
-                            if vertex["parent_graph"] is g:
-                                pass
-                            else:
-                                vertex["parent_graph"].set_parent_graph(
-                                    parent_graph
-                                )
+def update_parent_graph_hierarchy(g: rez.vendor.pydot.core.Dot) -> None:
+    for edge_groups in g.obj_dict.get("edges", {}).values():
+        for edge in edge_groups:
+            assert isinstance(edge, dict)
+            endpoints = edge.get("points", [])
+            for ep in endpoints:
+                if isinstance(ep, FrozenDict):
+                    ep["parent_graph"].set_parent_graph(g)
 
 
-def add_defaults(element, defaults):
-    d = element.__dict__
-    for key, value in defaults.items():
-        if not d.get(key):
-            d[key] = value
-
-
-def add_elements(
-    g, toks, defaults_graph=None, defaults_node=None, defaults_edge=None
-):
-    if defaults_graph is None:
-        defaults_graph = {}
-    if defaults_node is None:
-        defaults_node = {}
-    if defaults_edge is None:
-        defaults_edge = {}
-
-    for elm_idx, element in enumerate(toks):
-        if isinstance(element, (pydot.Subgraph, pydot.Cluster)):
-            add_defaults(element, defaults_graph)
+def add_elements(g: Any, toks: ParseResults) -> None:
+    for element in toks:
+        if isinstance(element, (rez.vendor.pydot.core.Subgraph, rez.vendor.pydot.core.Cluster)):
             g.add_subgraph(element)
-
-        elif isinstance(element, pydot.Node):
-            add_defaults(element, defaults_node)
+        elif isinstance(element, rez.vendor.pydot.core.Node):
             g.add_node(element)
-
-        elif isinstance(element, pydot.Edge):
-            add_defaults(element, defaults_edge)
+        elif isinstance(element, rez.vendor.pydot.core.Edge):
             g.add_edge(element)
-
         elif isinstance(element, ParseResults):
-            for e in element:
-                add_elements(
-                    g, [e], defaults_graph, defaults_node, defaults_edge
-                )
-
+            add_elements(g, element)
         elif isinstance(element, DefaultStatement):
-            if element.default_type == "graph":
-                default_graph_attrs = pydot.Node("graph", **element.attrs)
-                g.add_node(default_graph_attrs)
-
-            elif element.default_type == "node":
-                default_node_attrs = pydot.Node("node", **element.attrs)
-                g.add_node(default_node_attrs)
-
-            elif element.default_type == "edge":
-                default_edge_attrs = pydot.Node("edge", **element.attrs)
-                g.add_node(default_edge_attrs)
-                defaults_edge.update(element.attrs)
-
-            else:
-                raise ValueError(
-                    "Unknown DefaultStatement: {s}".format(
-                        s=element.default_type
-                    )
-                )
-
-        elif isinstance(element, P_AttrList):
+            default_node = rez.vendor.pydot.core.Node(
+                element.default_type, **element.attrs
+            )
+            g.add_node(default_node)
+        else:
+            assert isinstance(element, P_AttrList)
             g.obj_dict["attributes"].update(element.attrs)
 
-        else:
-            raise ValueError(
-                "Unknown element statement: {s}".format(s=element)
-            )
+
+def expand_attr_lists(attr_l: Any) -> dict[str, Any]:
+    if not isinstance(attr_l, ParseResults):
+        return {}
+    attrs = {}
+    for alist in attr_l:
+        attrs.update(alist.attrs)
+    return attrs
 
 
-def push_graph_stmt(s, loc, toks):
-    g = pydot.Subgraph("")
+def push_dbl_quoted(toks: ParseResults) -> str:
+    assert "dbl_quoted" in toks and isinstance(toks.dbl_quoted, str)
+    s = toks.dbl_quoted
+    # Remove backslash line-continuations
+    if "\\" in s:
+        s = s.replace("\\\r\n", "").replace("\\\n", "")
+    return s
+
+
+def push_ID(toks: ParseResults) -> str:
+    """Join multiple string pieces into a single ID string."""
+    if "concat" in toks:
+        out = "".join(s[1:-1] for s in toks.concat)
+        return f'"{out}"'
+    if "dbl_quoted" in toks:
+        return str(toks.dbl_quoted)
+    if "ident" in toks:
+        return str(toks.ident)
+    # (by process of elimination, HTML)
+    assert "html" in toks and isinstance(toks.html, str)
+    return toks.html
+
+
+def push_node_id(toks: ParseResults) -> str:
+    out = []
+    for group in toks:
+        assert "id_part" in group
+        out.append(str(group.id_part))
+    return ":".join(out)
+
+
+def push_graph_stmt(toks: ParseResults) -> rez.vendor.pydot.core.Subgraph:
+    g = rez.vendor.pydot.core.Subgraph("")
+    g.obj_dict["show_keyword"] = False
     add_elements(g, toks)
     return g
 
 
-def push_subgraph_stmt(s, loc, toks):
-    g = pydot.Subgraph("")
-    for e in toks:
-        if len(e) == 3:
-            e[2].set_name(e[1])
-            if e[0] == "subgraph":
-                e[2].obj_dict["show_keyword"] = True
-            return e[2]
-        else:
-            if e[0] == "subgraph":
-                e[1].obj_dict["show_keyword"] = True
-            return e[1]
-
+def push_subgraph_stmt(toks: ParseResults) -> rez.vendor.pydot.core.Subgraph:
+    assert "keyword" in toks
+    id_ = str(toks.id)
+    show_kw = "keyword" in toks
+    g = rez.vendor.pydot.core.Subgraph(id_)
+    g.obj_dict["show_keyword"] = show_kw
+    if isinstance(toks.contents, ParseResults):
+        add_elements(g, toks.contents)
     return g
 
 
-def push_default_stmt(s, loc, toks):
-    # The pydot class instances should be marked as
-    # default statements to be inherited by actual
-    # graphs, nodes and edges.
-    #
-    default_type = toks[0][0]
-    if len(toks) > 1:
-        attrs = toks[1].attrs
-    else:
-        attrs = {}
-
-    if default_type in ["graph", "node", "edge"]:
-        return DefaultStatement(default_type, attrs)
-    else:
-        raise ValueError("Unknown default statement: {s}".format(s=toks))
+def push_default_stmt(toks: ParseResults) -> DefaultStatement:
+    default_type = toks.dtype
+    attrs = expand_attr_lists(toks.attr_l)
+    return DefaultStatement(str(default_type), attrs)
 
 
-def push_attr_list(s, loc, toks):
+def push_attr_list(toks: ParseResults) -> P_AttrList:
     p = P_AttrList(toks)
     return p
 
 
-def get_port(node):
-    if len(node) > 1:
-        if isinstance(node[1], ParseResults):
-            if len(node[1][0]) == 2:
-                if node[1][0][0] == ":":
-                    return node[1][0][1]
+def push_edge_stmt(toks: ParseResults) -> list[rez.vendor.pydot.core.Edge]:
+    endpoints = list(toks.endpoints)
+    attrs = expand_attr_lists(toks.attr_l)
 
-    return None
+    def make_endpoint(
+        ep: rez.vendor.pydot.core.Common | list[Any] | str,
+    ) -> FrozenDict | str:
+        if isinstance(ep, rez.vendor.pydot.core.Subgraph):
+            return FrozenDict(ep.obj_dict)
+        return str(ep)
+
+    edges = []
+    n_prev = make_endpoint(endpoints[0])
+    for endpoint in endpoints[1:]:
+        n_next = make_endpoint(endpoint)
+        edges.append(rez.vendor.pydot.core.Edge(n_prev, n_next, **attrs))
+        n_prev = n_next
+    return edges
 
 
-def do_node_ports(node):
-    node_port = ""
-    if len(node) > 1:
-        node_port = "".join([str(a) + str(b) for a, b in node[1]])
-
-    return node_port
+def push_node_stmt(toks: ParseResults) -> rez.vendor.pydot.core.Node:
+    node_name = toks.name
+    attrs = expand_attr_lists(toks.attr_l)
+    return rez.vendor.pydot.core.Node(str(node_name), **attrs)
 
 
-def push_edge_stmt(s, loc, toks):
-    tok_attrs = [a for a in toks if isinstance(a, P_AttrList)]
-    attrs = {}
-    for a in tok_attrs:
-        attrs.update(a.attrs)
+class GraphParser:
+    """Pyparsing grammar for graphviz 'dot' syntax."""
 
-    e = []
+    # punctuation
+    colon = Literal(":")
+    lbrace = Literal("{")
+    rbrace = Literal("}")
+    lbrack = Literal("[")
+    rbrack = Literal("]")
+    equals = Literal("=")
+    comma = Literal(",")
+    semi = Literal(";")
+    minus = Literal("-")
 
-    if isinstance(toks[0][0], pydot.Graph):
-        n_prev = pydot.frozendict(toks[0][0].obj_dict)
-    else:
-        n_prev = toks[0][0] + do_node_ports(toks[0])
+    # keywords
+    strict_ = CaselessLiteral("strict")
+    graph_ = CaselessLiteral("graph")
+    digraph_ = CaselessLiteral("digraph")
+    subgraph_ = CaselessLiteral("subgraph")
+    node_ = CaselessLiteral("node")
+    edge_ = CaselessLiteral("edge")
 
-    if isinstance(toks[2][0], ParseResults):
-        n_next_list = [[n.get_name()] for n in toks[2][0]]
-        for n_next in [n for n in n_next_list]:
-            n_next_port = do_node_ports(n_next)
-            e.append(pydot.Edge(n_prev, n_next[0] + n_next_port, **attrs))
+    # token definitions
+    identifier = Word(unicode.BasicMultilingualPlane.alphanums + "_.")
 
-    elif isinstance(toks[2][0], pydot.Graph):
-        e.append(
-            pydot.Edge(n_prev, pydot.frozendict(toks[2][0].obj_dict), **attrs)
+    double_quoted = (
+        QuotedString('"', multiline=True, unquote_results=False, esc_char="\\")
+        .set_results_name("dbl_quoted")
+        .set_parse_action(push_dbl_quoted)
+    )
+
+    concat_string = DelimitedList(
+        double_quoted, delim="+", min=2, combine=False
+    )
+
+    ID = (
+        concat_string("concat")
+        | double_quoted
+        | identifier("ident")
+        | HTML().set_results_name("html")
+    ).set_parse_action(push_ID)
+
+    float_number = Combine(Optional(minus) + OneOrMore(Word(nums + ".")))
+
+    righthand_id = float_number | ID
+
+    node_id = DelimitedList(
+        Group(ID("id_part")), delim=":", min=1, max=3, combine=False
+    ).set_parse_action(push_node_id)
+
+    a_list = OneOrMore(
+        ID + Optional(equals + righthand_id) + Optional(comma.suppress())
+    )
+    attr_list = OneOrMore(
+        lbrack.suppress() + Optional(a_list) + rbrack.suppress()
+    )
+    node_stmt = (
+        node_id("name")
+        + Optional(attr_list("attr_l"))
+        + Optional(semi.suppress())
+    )
+
+    default_type = graph_ | node_ | edge_
+    default_stmt = default_type("dtype") + attr_list("attr_l")
+
+    stmt_list = Forward()
+    graph_stmt = Group(
+        lbrace.suppress()
+        + Optional(stmt_list)
+        + rbrace.suppress()
+        + Optional(semi.suppress())
+    )
+
+    subgraph = (
+        subgraph_("keyword") + Optional(ID("id")) + graph_stmt("contents")
+    )
+
+    edgeop = Literal("--") | Literal("->")
+    edge_point = subgraph | graph_stmt | node_id
+    edge_stmt = DelimitedList(edge_point, delim=edgeop, min=2)(
+        "endpoints"
+    ) + Optional(attr_list("attr_l"))
+
+    assignment = ID + equals + righthand_id
+
+    stmt = (
+        assignment
+        | edge_stmt
+        | default_stmt
+        | subgraph
+        | graph_stmt
+        | node_stmt
+    )
+    stmt_list <<= OneOrMore(stmt + Optional(semi.suppress()))
+
+    graph_type = digraph_ | graph_
+    parser = OneOrMore(
+        Group(
+            Optional(strict_("strict"))
+            + graph_type("gtype")
+            + Optional(ID("id"))
+            + graph_stmt("contents")
         )
+    ).set_results_name("graphs")
 
-    elif isinstance(toks[2][0], pydot.Node):
-        node = toks[2][0]
+    singleLineComment = Group("//" + restOfLine) | Group("#" + restOfLine)
 
-        if node.get_port() is not None:
-            name_port = node.get_name() + ":" + node.get_port()
-        else:
-            name_port = node.get_name()
+    # actions
 
-        e.append(pydot.Edge(n_prev, name_port, **attrs))
+    parser.ignore(singleLineComment)
+    parser.ignore(cStyleComment)
+    parser.parse_with_tabs()
 
-    # if the target of this edge is the name of a node
-    elif isinstance(toks[2][0], str):
-        for n_next in [n for n in tuple(toks)[2::2]]:
-            if isinstance(n_next, P_AttrList) or not isinstance(
-                n_next[0], str
-            ):
-                continue
+    assignment.setParseAction(push_attr_list)
+    a_list.setParseAction(push_attr_list)
+    edge_stmt.setParseAction(push_edge_stmt)
+    node_stmt.setParseAction(push_node_stmt)
+    default_stmt.setParseAction(push_default_stmt)
 
-            n_next_port = do_node_ports(n_next)
-            e.append(pydot.Edge(n_prev, n_next[0] + n_next_port, **attrs))
+    subgraph.setParseAction(push_subgraph_stmt)
+    graph_stmt.setParseAction(push_graph_stmt)
+    parser.setParseAction(push_top_graph_stmt)
 
-            n_prev = n_next[0] + n_next_port
-    else:
-        raise Exception(
-            "Edge target {r} with type {s} unsupported.".format(
-                r=toks[2][0], s=type(toks[2][0])
-            )
-        )
-
-    return e
+    autoname_elements()
 
 
-def push_node_stmt(s, loc, toks):
-    if len(toks) == 2:
-        attrs = toks[1].attrs
-    else:
-        attrs = {}
-
-    node_name = toks[0]
-    if isinstance(node_name, list) or isinstance(node_name, tuple):
-        if len(node_name) > 0:
-            node_name = node_name[0]
-
-    n = pydot.Node(str(node_name), **attrs)
-    return n
-
-
-graphparser = None
-
-
-def graph_definition():
-    global graphparser
-
-    if not graphparser:
-        # punctuation
-        colon = Literal(":")
-        lbrace = Literal("{")
-        rbrace = Literal("}")
-        lbrack = Literal("[")
-        rbrack = Literal("]")
-        lparen = Literal("(")
-        rparen = Literal(")")
-        equals = Literal("=")
-        comma = Literal(",")
-        semi = Literal(";")
-        at = Literal("@")
-        minus = Literal("-")
-
-        # keywords
-        strict_ = CaselessLiteral("strict")
-        graph_ = CaselessLiteral("graph")
-        digraph_ = CaselessLiteral("digraph")
-        subgraph_ = CaselessLiteral("subgraph")
-        node_ = CaselessLiteral("node")
-        edge_ = CaselessLiteral("edge")
-
-        # token definitions
-        identifier = Word(
-            pyparsing_unicode.BasicMultilingualPlane.alphanums + "_."
-        ).setName("identifier")
-
-        double_quoted_string = QuotedString(
-            '"', multiline=True, unquoteResults=False, escChar="\\"
-        )
-
-        html_text = Forward()
-        inner_html = OneOrMore(CharsNotIn("<>") | html_text)
-        html_text << "<" + inner_html + ">"
-        html_text.setParseAction(lambda arr: "".join(arr))
-
-        ID = (identifier | html_text | double_quoted_string).setName("ID")
-
-        float_number = Combine(
-            Optional(minus) + OneOrMore(Word(nums + "."))
-        ).setName("float_number")
-
-        righthand_id = (float_number | ID).setName("righthand_id")
-
-        port_angle = (at + ID).setName("port_angle")
-
-        port_location = (
-            OneOrMore(Group(colon + ID))
-            | Group(colon + lparen + ID + comma + ID + rparen)
-        ).setName("port_location")
-
-        port = (
-            Group(port_location + Optional(port_angle))
-            | Group(port_angle + Optional(port_location))
-        ).setName("port")
-
-        node_id = ID + Optional(port)
-        a_list = OneOrMore(
-            ID + Optional(equals + righthand_id) + Optional(comma.suppress())
-        ).setName("a_list")
-
-        attr_list = OneOrMore(
-            lbrack.suppress() + Optional(a_list) + rbrack.suppress()
-        ).setName("attr_list")
-
-        attr_stmt = (Group(graph_ | node_ | edge_) + attr_list).setName(
-            "attr_stmt"
-        )
-
-        edgeop = (Literal("--") | Literal("->")).setName("edgeop")
-
-        stmt_list = Forward()
-        graph_stmt = Group(
-            lbrace.suppress()
-            + Optional(stmt_list)
-            + rbrace.suppress()
-            + Optional(semi.suppress())
-        ).setName("graph_stmt")
-
-        edge_point = Forward()
-
-        edgeRHS = OneOrMore(edgeop + edge_point)
-        edge_stmt = edge_point + edgeRHS + Optional(attr_list)
-
-        subgraph = Group(subgraph_ + Optional(ID) + graph_stmt).setName(
-            "subgraph"
-        )
-
-        edge_point << Group(subgraph | graph_stmt | node_id).setName(
-            "edge_point"
-        )
-
-        node_stmt = (
-            node_id + Optional(attr_list) + Optional(semi.suppress())
-        ).setName("node_stmt")
-
-        assignment = (ID + equals + righthand_id).setName("assignment")
-        stmt = (
-            assignment
-            | edge_stmt
-            | attr_stmt
-            | subgraph
-            | graph_stmt
-            | node_stmt
-        ).setName("stmt")
-        stmt_list << OneOrMore(stmt + Optional(semi.suppress()))
-
-        graphparser = OneOrMore(
-            (
-                Optional(strict_)
-                + Group((graph_ | digraph_))
-                + Optional(ID)
-                + graph_stmt
-            ).setResultsName("graph")
-        )
-
-        singleLineComment = Group("//" + restOfLine) | Group("#" + restOfLine)
-
-        # actions
-
-        graphparser.ignore(singleLineComment)
-        graphparser.ignore(cStyleComment)
-
-        assignment.setParseAction(push_attr_list)
-        a_list.setParseAction(push_attr_list)
-        edge_stmt.setParseAction(push_edge_stmt)
-        node_stmt.setParseAction(push_node_stmt)
-        attr_stmt.setParseAction(push_default_stmt)
-
-        subgraph.setParseAction(push_subgraph_stmt)
-        graph_stmt.setParseAction(push_graph_stmt)
-        graphparser.setParseAction(push_top_graph_stmt)
-
-    return graphparser
-
-
-def parse_dot_data(s):
+def parse_dot_data(s: str) -> list[rez.vendor.pydot.core.Dot] | None:
     """Parse DOT description in (unicode) string `s`.
 
+    This function is NOT thread-safe due to the internal use of `pyparsing`.
+    Use a lock if needed.
+
     @return: Graphs that result from parsing.
-    @rtype: `list` of `pydot.Dot`
+    @rtype: `list` of `pydot.core.Dot`
     """
-    global top_graphs
-    top_graphs = list()
     try:
-        graphparser = graph_definition()
-        graphparser.parseWithTabs()
-        tokens = graphparser.parseString(s)
+        tokens = GraphParser.parser.parse_string(s)
         return list(tokens)
     except ParseException as err:
         print(err.line)
         print(" " * (err.column - 1) + "^")
         print(err)
         return None
+
+
+# Backwards compatibility
+graphparser: ParserElement = GraphParser.parser
