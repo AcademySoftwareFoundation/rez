@@ -4,11 +4,13 @@
 """Deterministic vendored-dependency updater and verifier for rez."""
 
 import argparse
+import ast
 import fnmatch
 import hashlib
 import json
 import os
 import re
+import shutil
 import socket
 import sys
 import tarfile
@@ -156,6 +158,132 @@ def extract_source_archive(
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         with open(dest, "wb") as f:
             f.write(data)
+
+
+def _line_byte_offsets(source_bytes):
+    offsets = [0]
+    for line in source_bytes.splitlines(keepends=True):
+        offsets.append(offsets[-1] + len(line))
+    return offsets
+
+
+def _node_byte_span(node, line_offsets):
+    start = line_offsets[node.lineno - 1] + node.col_offset
+    end = line_offsets[node.end_lineno - 1] + node.end_col_offset
+    return start, end
+
+
+def _match_rule(mod_name, rewrite_rules):
+    if not mod_name:
+        return None
+    for src_pkg, dst_pkg in sorted(rewrite_rules.items(), key=lambda kv: len(kv[0]), reverse=True):
+        if mod_name == src_pkg:
+            return src_pkg, dst_pkg, ""
+        if mod_name.startswith(src_pkg + "."):
+            return src_pkg, dst_pkg, mod_name[len(src_pkg) :]
+    return None
+
+
+def rewrite_python_imports(source_text, rewrite_rules):
+    """Dynamically rewrite imports (and dotted attribute chains) using ``ast``."""
+    if not rewrite_rules:
+        return source_text
+    try:
+        tree = ast.parse(source_text)
+    except SyntaxError:
+        return source_text
+
+    source_bytes = source_text.encode("utf-8")
+    line_offsets = _line_byte_offsets(source_bytes)
+    replacements = []
+    dotted_imported_pkgs = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            if len(node.names) != 1:
+                # Handle multi-name imports only when all or individual parts match via text fallback
+                continue
+            alias = node.names[0]
+            matched = _match_rule(alias.name, rewrite_rules)
+            if not matched:
+                continue
+            src_pkg, dst_pkg, suffix = matched
+            start, end = _node_byte_span(node, line_offsets)
+            if not suffix:
+                parent, _, leaf = dst_pkg.rpartition(".")
+                as_part = f" as {alias.asname}" if alias.asname else ""
+                new_stmt = f"from {parent} import {leaf}{as_part}" if parent else f"import {leaf}{as_part}"
+            else:
+                as_part = f" as {alias.asname}" if alias.asname else ""
+                new_stmt = f"import {dst_pkg}{suffix}{as_part}"
+                if not alias.asname:
+                    dotted_imported_pkgs.add(src_pkg)
+            replacements.append((start, end, new_stmt.encode("utf-8")))
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            matched = _match_rule(node.module, rewrite_rules)
+            if not matched:
+                continue
+            _, dst_pkg, suffix = matched
+            start, end = _node_byte_span(node, line_offsets)
+            stmt_bytes = source_bytes[start:end]
+            old_mod_bytes = node.module.encode("utf-8")
+            new_mod_bytes = f"{dst_pkg}{suffix}".encode("utf-8")
+            idx = stmt_bytes.find(old_mod_bytes)
+            if idx != -1:
+                replacements.append((start + idx, start + idx + len(old_mod_bytes), new_mod_bytes))
+
+    if dotted_imported_pkgs:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+                pkg = node.value.id
+                if pkg in dotted_imported_pkgs and pkg in rewrite_rules:
+                    s, e = _node_byte_span(node.value, line_offsets)
+                    replacements.append((s, e, rewrite_rules[pkg].encode("utf-8")))
+
+    if not replacements:
+        return source_text
+
+    # Sort descending and deduplicate overlapping spans
+    replacements.sort(key=lambda r: (r[0], r[1]), reverse=True)
+    buf = bytearray(source_bytes)
+    last_start = len(buf) + 1
+    for start, end, repl in replacements:
+        if end <= last_start:
+            buf[start:end] = repl
+            last_start = start
+    return buf.decode("utf-8")
+
+
+def rewrite_directory_imports(staging_dir, rewrite_rules):
+    """Apply ``rewrite_python_imports`` to all ``.py`` files in ``staging_dir``."""
+    if not rewrite_rules:
+        return
+    for dp, _, fns in os.walk(staging_dir):
+        for fn in fns:
+            if not fn.endswith(".py"):
+                continue
+            fp = os.path.join(dp, fn)
+            with open(fp, "r", encoding="utf-8", errors="surrogateescape") as f:
+                orig = f.read()
+            updated = rewrite_python_imports(orig, rewrite_rules)
+            if updated != orig:
+                with open(fp, "w", encoding="utf-8", errors="surrogateescape", newline="\n") as f:
+                    f.write(updated)
+
+
+def apply_layout(staging_dir, pkg_spec):
+    """Apply ``file_map`` and ``wrap_single_module`` layout adjustments."""
+    for src_rel, dst_rel in (pkg_spec.get("file_map") or {}).items():
+        src = os.path.join(staging_dir, src_rel.replace("/", os.sep))
+        dst = os.path.join(staging_dir, dst_rel.replace("/", os.sep))
+        if os.path.exists(src):
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.move(src, dst)
+    if pkg_spec.get("wrap_single_module"):
+        init_path = os.path.join(staging_dir, "__init__.py")
+        if not os.path.exists(init_path):
+            with open(init_path, "wb") as f:
+                f.write(b"")
 
 
 class VendorError(RuntimeError):

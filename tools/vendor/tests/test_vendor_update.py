@@ -168,5 +168,56 @@ class TestSourceFetcherAndExtractor(unittest.TestCase):
             self.assertEqual(sha, "def")
 
 
+class TestImportRewriterAndLayout(unittest.TestCase):
+    def test_rewrite_self_and_dotted_imports_with_attr_chains(self):
+        src = (
+            '"""Docstring mentioning import pika.spec."""\n'
+            "import pika.exceptions\n"
+            "import pika.spec\n"
+            "from pika.adapters import base_connection\n"
+            "import logging\n\n"
+            "def f(x):\n"
+            "    # comment: pika.exceptions\n"
+            "    if isinstance(x, pika.spec.Basic.Return):\n"
+            "        raise pika.exceptions.AMQPConnectionError()\n"
+        )
+        out = vendor_update.rewrite_python_imports(src, {"pika": "rez.vendor.pika"})
+        self.assertIn('"""Docstring mentioning import pika.spec."""', out)
+        self.assertIn("# comment: pika.exceptions", out)
+        self.assertIn("import rez.vendor.pika.exceptions", out)
+        self.assertIn("import rez.vendor.pika.spec", out)
+        self.assertIn("from rez.vendor.pika.adapters import base_connection", out)
+        self.assertIn("isinstance(x, rez.vendor.pika.spec.Basic.Return)", out)
+        self.assertIn("raise rez.vendor.pika.exceptions.AMQPConnectionError()", out)
+        self.assertIn("import logging", out)
+
+    def test_rewrite_wrapped_single_module_and_bare_import(self):
+        src = (
+            "import six\n"
+            "import zipp\n"
+            "from six.moves.urllib import parse as urlparse\n"
+            "from typing_extensions import Protocol\n"
+        )
+        rules = {
+            "six": "rez.vendor.six.six",
+            "zipp": "rez.vendor.zipp",
+            "typing_extensions": "rez.vendor.typing_extensions.typing_extensions",
+        }
+        out = vendor_update.rewrite_python_imports(src, rules)
+        self.assertIn("from rez.vendor.six import six", out)
+        self.assertIn("from rez.vendor import zipp", out)
+        self.assertIn("from rez.vendor.six.six.moves.urllib import parse as urlparse", out)
+        self.assertIn("from rez.vendor.typing_extensions.typing_extensions import Protocol", out)
+
+    def test_apply_layout_wrap_single_module(self):
+        with tempfile.TemporaryDirectory() as td:
+            with open(os.path.join(td, "schema.py"), "w", encoding="utf-8") as f:
+                f.write("class Schema: pass\n")
+            vendor_update.apply_layout(td, {"wrap_single_module": True})
+            self.assertTrue(os.path.exists(os.path.join(td, "__init__.py")))
+            self.assertEqual(os.path.getsize(os.path.join(td, "__init__.py")), 0)
+            self.assertTrue(os.path.exists(os.path.join(td, "schema.py")))
+
+
 if __name__ == "__main__":
     unittest.main()
