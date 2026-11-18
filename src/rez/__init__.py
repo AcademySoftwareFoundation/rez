@@ -42,6 +42,8 @@ def _init_logging() -> None:
     # Suppress pika vendor library logs unless context_tracking debug is on.
     # set_pika_log_level() in amqp.py will override this to DEBUG if needed.
     logging.getLogger("rez.vendor.pika").setLevel(logging.CRITICAL)
+    # Suppress pydot import-time DEBUG chatter on stderr (pydot 4.x+).
+    logging.getLogger("rez.vendor.pydot").setLevel(logging.WARNING)
 
 
 _init_logging()
