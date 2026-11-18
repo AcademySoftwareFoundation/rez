@@ -1,0 +1,165 @@
+{
+  "min_python": "3.8",
+  "packages": {
+    "atomicwrites": {
+      "source": "pypi",
+      "version": "1.4.1",
+      "sha256": "81b2c9071a49367a7f770170e5eec8cb66567cfbbc8c73d20ce5ca4a8d71cf11",
+      "strip_prefix": "atomicwrites-1.4.1/atomicwrites/",
+      "extra_files": {
+        "LICENSE": "atomicwrites-1.4.1/LICENSE"
+      }
+    },
+    "distlib": {
+      "source": "pypi",
+      "version": "0.3.9",
+      "sha256": "a60f20dea646b8a33f3e7772f74dc0b2d0772d2837ee1342a00645c81edf9403",
+      "strip_prefix": "distlib-0.3.9/distlib/",
+      "extra_files": {
+        "LICENSE.txt": "distlib-0.3.9/LICENSE.txt"
+      },
+      "allow_binaries": [
+        "*.exe"
+      ]
+    },
+    "distro": {
+      "source": "pypi",
+      "version": "1.9.0",
+      "sha256": "2fa77c6fd8940f116ee1d6b94a2f90b13b5ea8d019b98bc8bafdcabcdd9bdbed",
+      "strip_prefix": "distro-1.9.0/src/distro/",
+      "extra_files": {
+        "LICENSE": "distro-1.9.0/LICENSE"
+      }
+    },
+    "enum": {
+      "source": "pypi",
+      "pypi_name": "enum34",
+      "version": "1.1.6",
+      "sha256": "8ad8c4783bf61ded74527bffb48ed9b54166685e4230386a9ed9b1279e2df5b1",
+      "strip_prefix": "enum34-1.1.6/enum/",
+      "drop": [
+        "README",
+        "doc/enum.pdf",
+        "test.py"
+      ],
+      "patch": "patches/enum.patch"
+    },
+    "lockfile": {
+      "source": "pypi",
+      "version": "0.9.1",
+      "sha256": "23da589c91f59cb7c644d5ce5df539d448341bd479917d6dde973f82e2719147",
+      "strip_prefix": "lockfile-0.9.1/lockfile/",
+      "extra_files": {
+        "LICENSE": "lockfile-0.9.1/LICENSE",
+        "RELEASE-NOTES": "lockfile-0.9.1/RELEASE-NOTES"
+      },
+      "patch": "patches/lockfile.patch"
+    },
+    "memcache": {
+      "source": "pypi",
+      "pypi_name": "python-memcached",
+      "version": "1.59",
+      "sha256": "a2e28637be13ee0bf1a8b6843e7490f9456fd3f2a4cb60471733c7b5d5557e4f",
+      "strip_prefix": "python-memcached-1.59/",
+      "drop": [
+        "ChangeLog",
+        "MANIFEST.in",
+        "PKG-INFO",
+        "README.md",
+        "*.egg-info/*",
+        "*requirements.txt",
+        "setup.*"
+      ],
+      "wrap_single_module": true,
+      "rewrite_imports": {
+        "six": "rez.vendor.six.six"
+      },
+      "patch": "patches/memcache.patch"
+    },
+    "progress": {
+      "source": "pypi",
+      "version": "1.6",
+      "sha256": "c9c86e98b5c03fa1fe11e3b67c1feda4788b8d0fe7336c2ff7d5644ccfba34cd",
+      "strip_prefix": "progress-1.6/progress/",
+      "extra_files": {
+        "LICENSE": "progress-1.6/LICENSE"
+      }
+    },
+    "pyparsing": {
+      "source": "pypi",
+      "version": "3.1.4",
+      "sha256": "f86ec8d1a83f11977c9a6ea7598e8c27fc5cddfa5b07ea2241edbbde1d7bc032",
+      "strip_prefix": "pyparsing-3.1.4/pyparsing/",
+      "extra_files": {
+        "LICENSE": "pyparsing-3.1.4/LICENSE"
+      }
+    },
+    "schema": {
+      "source": "url",
+      "url": "https://github.com/keleshev/schema/archive/916ba05e22b7b370b3586f97c40695e7b9e7fe33.tar.gz",
+      "filename": "schema-916ba05e.tar.gz",
+      "sha256": "620c80e1da62b899d4b216b0b058784ddebc718e4435cfc88b212e782c175c55",
+      "strip_prefix": "schema-916ba05e22b7b370b3586f97c40695e7b9e7fe33/",
+      "drop": [
+        ".gitignore",
+        ".travis.yml",
+        "MANIFEST.in",
+        "README.rst",
+        "setup.py",
+        "tox.ini"
+      ],
+      "wrap_single_module": true,
+      "patch": "patches/schema.patch"
+    },
+    "six": {
+      "source": "pypi",
+      "version": "1.17.0",
+      "sha256": "ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81",
+      "strip_prefix": "six-1.17.0/",
+      "drop": [
+        "MANIFEST.in",
+        "PKG-INFO",
+        "documentation/*",
+        "setup.*",
+        "test_six.py",
+        "*.egg-info/*"
+      ],
+      "wrap_single_module": true,
+      "patch": "patches/six.patch"
+    },
+    "typing_extensions": {
+      "source": "pypi",
+      "pypi_name": "typing-extensions",
+      "version": "4.7.1",
+      "sha256": "b75ddc264f0ba5615db7ba217daeb99701ad295353c45f9e95963337ceeeffb2",
+      "strip_prefix": "typing_extensions-4.7.1/src/",
+      "drop": [
+        "_typed_dict_test_helper.py",
+        "test_typing_extensions.py"
+      ],
+      "extra_files": {
+        "LICENSE": "typing_extensions-4.7.1/LICENSE"
+      },
+      "wrap_single_module": true
+    },
+    "yaml": {
+      "source": "pypi",
+      "pypi_name": "PyYAML",
+      "version": "6.0.1",
+      "sha256": "bfdf460b1736c775f2ba9f6a92bca30bc2095067b8a9d77876d1fad6cc3b4a43",
+      "strip_prefix": "PyYAML-6.0.1/lib/yaml/",
+      "extra_files": {
+        "LICENSE": "PyYAML-6.0.1/LICENSE"
+      }
+    },
+    "zipp": {
+      "source": "pypi",
+      "version": "3.15.0",
+      "sha256": "112929ad649da941c23de50f356a2b5570c954b65150642bccdd66bf194d224b",
+      "strip_prefix": "zipp-3.15.0/zipp/",
+      "extra_files": {
+        "LICENSE": "zipp-3.15.0/LICENSE"
+      }
+    }
+  }
+}
