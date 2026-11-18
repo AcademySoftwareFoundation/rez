@@ -222,8 +222,10 @@ schema
 MIT
 </td><td>
 https://github.com/keleshev/schema<br>
-Updated (Nov 2026). Dropped upstream test_schema.py (switched to pytest) in
-favor of rez-native unittest coverage in src/rez/tests/test_schema.py.
+Updated (Nov 2026). Forward-ported rez's O(1) string-key lookup fast-path
+(schema_key_map) and inline dict check; dropped upstream test_schema.py
+(switched to pytest) in favor of rez-native unittest coverage in
+src/rez/tests/test_schema.py.
 </td></tr>
 
 <!-- ######################################################### -->
