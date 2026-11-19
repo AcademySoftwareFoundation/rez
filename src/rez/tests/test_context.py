@@ -265,8 +265,11 @@ class TestContext(TestBase, TempdirMixin):
 
     def test_orderer_variants(self) -> None:
         """Test that package orderers apply to the variants of packages, not just requires."""
-        from rez.package_order import PerFamilyOrder, VersionSplitPackageOrder
+        from rez.plugin_managers import plugin_manager
         from rez.version import Version
+
+        PerFamilyOrder = plugin_manager.get_plugin_class("package_order", "per_family")
+        VersionSplitPackageOrder = plugin_manager.get_plugin_class("package_order", "version_split")
 
         packages_path = self.data_path("solver", "packages")
 
@@ -292,8 +295,10 @@ class TestContext(TestBase, TempdirMixin):
 
     def test_orderer_package_argument(self) -> None:
         """Test that the packages argument to an orderer gives expected results."""
-        from rez.package_order import VersionSplitPackageOrder
+        from rez.plugin_managers import plugin_manager
         from rez.version import Version
+
+        VersionSplitPackageOrder = plugin_manager.get_plugin_class("package_order", "version_split")
 
         packages_path = self.data_path("solver", "packages")
 
@@ -328,8 +333,10 @@ class TestContext(TestBase, TempdirMixin):
         self.assertEqual(resolved, ['python-2.7.0'])
 
     def test_serialize_roundtrip_with_extra_settings(self):
-        from rez.package_order import VersionSplitPackageOrder
+        from rez.plugin_managers import plugin_manager
         from rez.version import Version
+
+        VersionSplitPackageOrder = plugin_manager.get_plugin_class("package_order", "version_split")
 
         packages_path = self.data_path("solver", "packages")
 
