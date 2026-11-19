@@ -233,5 +233,62 @@ class TestComplete(TestBase):
         self.assertIsInstance(completions, set)
 
 
+class TestEnvCommandGroups(TestBase):
+    """Regression test for issue #1462: 'rez env' must forward every argument
+    group after every '--', not just the first one.
+    """
+
+    def _run(self, args):
+        from rez.cli import env
+        from rez.cli._main import setup_parser
+
+        # replicate the "grouped" arg-splitting done by rez.cli._main.run()
+        arg_groups = [["env"]]
+        for arg in args:
+            if arg == '--':
+                arg_groups.append([])
+                continue
+            arg_groups[-1].append(arg)
+
+        opts = setup_parser().parse_args(arg_groups[0])
+        extra_arg_groups = arg_groups[1:]
+
+        captured = {}
+
+        class _FakeContext:
+            status = None
+
+            def execute_shell(self, **kwargs):
+                captured.update(kwargs)
+                return (0, None, None)
+
+        def _fake_resolved_context(*nargs, **kwargs):
+            from rez.resolver import ResolverStatus
+            ctx = _FakeContext()
+            ctx.status = ResolverStatus.solved
+            return ctx
+
+        with patch("rez.resolved_context.ResolvedContext", side_effect=_fake_resolved_context):
+            with self.assertRaises(SystemExit) as cm:
+                env.command(opts, opts.parser, extra_arg_groups)
+            self.assertEqual(cm.exception.code, 0)
+
+        return captured["command"]
+
+    def test_single_double_dash(self) -> None:
+        command = self._run(["--", "python3", "test.py"])
+        self.assertEqual(command, ["python3", "test.py"])
+
+    def test_nested_double_dash(self) -> None:
+        # eg 'rez env python -- python test.py -- -s "test"'
+        command = self._run(["--", "python3", "test.py", "--", "-s", "test"])
+        self.assertEqual(command, ["python3", "test.py", "--", "-s", "test"])
+
+    def test_double_dash_then_nested_rez_env(self) -> None:
+        # eg 'rez env python -- rez env python -- python3'
+        command = self._run(["--", "rez", "env", "python", "--", "python3"])
+        self.assertEqual(command, ["rez", "env", "python", "--", "python3"])
+
+
 if __name__ == '__main__':
     unittest.main()
