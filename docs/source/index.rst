@@ -33,6 +33,7 @@ Welcome to rez's documentation!
    pip
    plugins
    package_orderers
+   rez_gui
 
 .. toctree::
    :maxdepth: 2
