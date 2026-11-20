@@ -15,7 +15,7 @@ import subprocess
 try:
     from setuptools import setup, find_packages
     from distutils.command.build_scripts import build_scripts
-    from wheel.bdist_wheel import bdist_wheel, get_platform
+    from wheel.bdist_wheel import bdist_wheel
     import packaging.tags
 except ImportError:
     print("install failed - requires setuptools, distutils, wheel and packaging", file=sys.stderr)
@@ -27,7 +27,7 @@ src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
 
 from rez.utils._version import _rez_version
-from rez.cli._entry_points import get_specifications, EntryPointType
+from rez.cli._entry_points import get_specifications
 
 
 def find_files(pattern, path=None, root="rez"):
