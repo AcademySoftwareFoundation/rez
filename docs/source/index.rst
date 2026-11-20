@@ -30,6 +30,7 @@ Welcome to rez's documentation!
    suites
    managing_packages
    caching
+   context_tracking
    pip
    plugins
    package_orderers
