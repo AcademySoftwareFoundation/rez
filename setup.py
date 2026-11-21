@@ -168,7 +168,7 @@ if os.environ.get("REZ_USE_STANDARD_LAUNCHER") != "1":
         cmdclass["install_scripts"] = rez_install_scripts
     scripts = list(get_specifications().keys())
 else:
-    entrypoints ={
+    entrypoints = {
         "console_scripts": [ep.spec for ep in get_specifications().values()]
     }
 
@@ -188,7 +188,7 @@ setup(
     maintainer_email="rez-discussion@lists.aswf.io",
     license="Apache-2.0",
     license_files=["LICENSE"],
-    entrypoints=entrypoints,
+    entry_points=entrypoints,
     scripts=scripts,
     zip_safe=False,
     package_dir={'': 'src'},
