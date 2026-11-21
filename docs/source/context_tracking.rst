@@ -22,6 +22,11 @@ Rez emits two kinds of events, which are called *actions*:
 ``sourced``
    An existing context was recreated, for example by loading an ``.rxt`` file.
 
+Rez sends the ``created`` event once the solve has finished, whether it succeeded or failed
+because of a conflict between requirements. The context's ``status`` field tells you which.
+A request for a package or version that doesn't exist raises an error before the solve
+finishes, so it sends no event at all. Tracking data therefore doesn't show these failures.
+
 Each event is published as a JSON message that looks like this:
 
 .. code-block:: python
@@ -69,6 +74,18 @@ attach studio-specific information such as the current show or shot:
 
 If a field references an unknown environment variable, or is an empty string (possibly as
 a result of variable expansion), rez removes it from the message.
+
+.. tip::
+   To set extra fields from the environment instead of a config file, pass them as JSON in
+   ``REZ_CONTEXT_TRACKING_EXTRA_FIELDS_JSON``:
+
+   .. code-block:: console
+
+      $ export REZ_CONTEXT_TRACKING_EXTRA_FIELDS_JSON='{"show": "${SHOW}", "shot": "${SHOT}"}'
+
+   ``REZ_CONTEXT_TRACKING_EXTRA_FIELDS`` without the ``_JSON`` suffix expects the form
+   ``show:${SHOW},shot:${SHOT}`` instead. If you give it JSON, rez fails with an error that
+   doesn't point to the cause.
 
 Requirements
 ============
@@ -144,6 +161,12 @@ persistent, meaning the broker writes the message to disk so that it survives a 
 Rez publishes messages in a background thread, so tracking does not slow down resolves.
 When the process exits, rez waits up to five seconds for pending messages to be sent.
 If publishing fails, rez prints an error but the context itself is unaffected.
+
+.. note::
+   Rez does not retry or buffer events. An event is lost if the broker can't be reached when
+   rez sends it, for example while the broker is restarting. So is any event still waiting to
+   be sent five seconds after the process exits. If you need complete data, make sure the
+   broker is highly available.
 
 Please refer to the :ref:`context tracking <config-context-tracking>` configuration section
 for a complete list of settings.

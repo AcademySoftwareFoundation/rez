@@ -49,7 +49,15 @@ The script needs two Python packages:
    pika>=1.2,<2
    psycopg2-binary>=2.9
 
-Install them, point the script at your broker and database, and start it:
+It also needs a RabbitMQ broker and a PostgreSQL database, both with a user ``rez`` whose
+password is ``rez``. For a local test, you can start both with Docker:
+
+.. code-block:: sh
+
+   docker run -d --name rez-rabbitmq -p 5672:5672 -e RABBITMQ_DEFAULT_USER=rez -e RABBITMQ_DEFAULT_PASS=rez rabbitmq:4
+   docker run -d --name rez-postgres -p 5432:5432 -e POSTGRES_USER=rez -e POSTGRES_PASSWORD=rez postgres:17
+
+Install the packages, point the script at your broker and database, and start it:
 
 .. code-block:: sh
 
@@ -58,8 +66,6 @@ Install them, point the script at your broker and database, and start it:
    export PG_DSN=postgresql://rez:rez@localhost:5432/rez
    python consumer.py
 
-The defaults match ``docker compose up -d postgres rabbitmq`` from the root of the
-`rez-ctx-tracking-consumer <https://github.com/instinct-vfx/rez-ctx-tracking-consumer>`_ repository.
 Configure rez to match:
 
 .. code-block:: python
@@ -78,9 +84,7 @@ Start the script once before rez sends anything: it creates the exchange and the
 a queue exists RabbitMQ drops the messages. This also takes care of the exchange requirement
 described in :doc:`context_tracking`.
 
-It writes the same columns as the full consumer to a ``rez_context_event`` table (created if
-missing, not partitioned), so the example dashboards and most of the queries from the full project
-work with it as well. The exceptions are the queries about rejected messages and partitions.
+It writes each event to a ``rez_context_event`` table, which it creates if missing.
 
 
 .. _context-tracking-example-consumer-code:
@@ -93,9 +97,7 @@ Code
 
    """A minimal rez context tracking consumer: RabbitMQ -> Postgres.
 
-   One message, one row, one commit. No batching, metrics or partitions; see the
-   main project for those. Writes the same columns as the main consumer, so the
-   example Grafana dashboards work with this table too.
+   One message, one row, one commit. No batching, metrics or partitions.
 
        pip install pika psycopg2-binary
        AMQP_URL=amqp://rez:rez@localhost:5672/ PG_DSN=postgresql://rez:rez@localhost/rez \
@@ -214,11 +216,15 @@ Code
        def on_message(ch, method, properties, body):
            try:
                row = to_row(method.routing_key, body)
-               with db, db.cursor() as cur:  # commits, or rolls back on error
+               with db.cursor() as cur:
                    cur.execute(INSERT, row)
+               db.commit()
            except Exception:
                if db.closed:
                    raise  # lost the database: stop without ack, the message stays queued
+               # Roll back only on a live connection; on a closed one that would raise
+               # and hide the original error.
+               db.rollback()
                # Not JSON, no "action"/"context", a NUL character in a string, ...
                # Acked anyway: requeueing would just fail again, forever.
                log.exception("dropping message: %r", body[:500])
@@ -233,6 +239,7 @@ Code
 
    def main():
        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+       logging.getLogger("pika").setLevel(logging.WARNING)  # pika logs every connect step at INFO
        while True:
            db = connection = None
            try:
