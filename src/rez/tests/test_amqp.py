@@ -8,6 +8,8 @@ Tests for rez.utils.amqp
 import logging
 import os
 import socket
+import ssl
+import sys
 import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
@@ -221,6 +223,132 @@ class TestPublishMessageConnectionFailure(TestBase):
             data={}
         )
         mock_set_level.assert_not_called()
+
+
+class TestPublishMessageTLS(TestBase):
+    """Tests for TLS settings in _publish_message()."""
+
+    _amqp_settings = TestPublishMessageConnectionFailure._amqp_settings
+
+    def _connect(self, host, **settings):
+        """Publish with BlockingConnection mocked; return the ConnectionParameters."""
+        with patch("rez.utils.amqp.BlockingConnection") as mock_conn:
+            result = _publish_message(
+                host=host,
+                amqp_settings=dict(self._amqp_settings, **settings),
+                routing_key="REZ.CONTEXT",
+                data={}
+            )
+        self.assertTrue(result)
+        return mock_conn.call_args[0][0]
+
+    def test_plaintext_without_amqps(self) -> None:
+        for host in ("mybroker:5671", "amqp://mybroker:5671"):
+            params = self._connect(host)
+            self.assertIsNone(params.ssl_options)
+            self.assertEqual(params.port, 5671)
+
+    def test_amqps_scheme_verifies_server(self) -> None:
+        params = self._connect("amqps://mybroker")
+        self.assertEqual(params.host, "mybroker")
+        self.assertEqual(params.port, 5671)
+        self.assertEqual(params.ssl_options.server_hostname, "mybroker")
+        context = params.ssl_options.context
+        self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(context.check_hostname)
+
+    @patch("rez.utils.amqp.print_warning")
+    def test_missing_ca_file_warns(self, mock_warn) -> None:
+        with patch("rez.utils.amqp.BlockingConnection") as mock_conn:
+            result = _publish_message(
+                host="amqps://mybroker",
+                amqp_settings=dict(self._amqp_settings, ssl_ca_file="/does/not/exist.pem"),
+                routing_key="REZ.CONTEXT",
+                data={}
+            )
+        self.assertFalse(result)
+        mock_conn.assert_not_called()
+        self.assertIn("Cannot connect", mock_warn.call_args[0][0])
+
+
+class _FakeTruststoreContext(ssl.SSLContext):
+    pass
+
+
+class TestDefaultSSLContext(TestBase):
+    """Which CAs an amqps:// connection trusts when ssl_ca_file is not set.
+
+    truststore and certifi are optional, so they are faked in sys.modules;
+    a None entry makes the import fail as if the package were not installed.
+    """
+
+    # Self-signed CA standing in for certifi's bundle.
+    _CA_PEM = (
+        "-----BEGIN CERTIFICATE-----\n"
+        "MIIBojCCAUmgAwIBAgIUD6j81XMKCUIcbkmHolZdaBdDUP8wCgYIKoZIzj0EAwIw\n"
+        "HjEcMBoGA1UEAwwTcmV6IHRlc3QgY2VydGlmaSBDQTAgFw0yNjExMjEyMDEyMDJa\n"
+        "GA8yMTI2MTAyODIwMTIwMlowHjEcMBoGA1UEAwwTcmV6IHRlc3QgY2VydGlmaSBD\n"
+        "QTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABMqJ7XB1uZTdkFwE7aWNN5q2jt4j\n"
+        "munEQmkXx404ZVpJmw6zK3uX0e2K/y0dFKlUBUFUMVo5Sv/quLNctvF8h6+jYzBh\n"
+        "MB0GA1UdDgQWBBTo3OB/IcZaJD46hQRvCdYKm472yzAfBgNVHSMEGDAWgBTo3OB/\n"
+        "IcZaJD46hQRvCdYKm472yzAPBgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIB\n"
+        "BjAKBggqhkjOPQQDAgNHADBEAiAWJpGh3WfCB6VQx8JaLBMil+WHKHqhLQswFSik\n"
+        "A1hn4gIgZYaN8RjnODhVg3/i94VKitxwvelReDC5YZfvXgbsMx0=\n"
+        "-----END CERTIFICATE-----\n"
+    )
+    _CA_CN = ((("commonName", "rez test certifi CA"),),)
+
+    def setUp(self) -> None:
+        super().setUp()
+        f = tempfile.NamedTemporaryFile(mode="w", suffix=".pem", delete=False)
+        f.write(self._CA_PEM)
+        f.close()
+        self.addCleanup(os.unlink, f.name)
+        self.ca_file = f.name
+        self.fake_truststore = MagicMock(SSLContext=_FakeTruststoreContext)
+        self.fake_certifi = MagicMock(where=lambda: self.ca_file)
+
+    def _context(self, modules, **settings):
+        with patch.dict(sys.modules, modules), \
+                patch("rez.utils.amqp.BlockingConnection") as mock_conn:
+            _publish_message(
+                host="amqps://mybroker",
+                amqp_settings=dict(TestPublishMessageConnectionFailure._amqp_settings, **settings),
+                routing_key="REZ.CONTEXT",
+                data={}
+            )
+        return mock_conn.call_args[0][0].ssl_options.context
+
+    def _trusts_test_ca(self, context) -> bool:
+        return any(c["subject"] == self._CA_CN for c in context.get_ca_certs())
+
+    def test_truststore_used_when_installed(self) -> None:
+        context = self._context({"truststore": self.fake_truststore, "certifi": self.fake_certifi})
+        self.assertIsInstance(context, _FakeTruststoreContext)
+
+    def test_certifi_added_without_truststore(self) -> None:
+        context = self._context({"truststore": None, "certifi": self.fake_certifi})
+        self.assertNotIsInstance(context, _FakeTruststoreContext)
+        self.assertTrue(self._trusts_test_ca(context))
+        self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(context.check_hostname)
+
+    def test_python_defaults_without_either(self) -> None:
+        context = self._context({"truststore": None, "certifi": None})
+        self.assertIs(type(context), ssl.SSLContext)
+        self.assertFalse(self._trusts_test_ca(context))
+        self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+
+    def test_ssl_ca_file_overrides_both(self) -> None:
+        other_ca = os.path.join(os.path.dirname(self.ca_file), "missing.pem")
+        self.fake_certifi.where = lambda: other_ca
+        context = self._context(
+            {"truststore": self.fake_truststore, "certifi": self.fake_certifi},
+            ssl_ca_file=self.ca_file
+        )
+        self.assertIs(type(context), ssl.SSLContext)
+        self.assertEqual(len(context.get_ca_certs()), 1)
+        self.assertTrue(self._trusts_test_ca(context))
 
 
 class TestSetPikaLogLevel(TestBase):

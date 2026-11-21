@@ -700,7 +700,39 @@ package_preprocess_mode = "override"
 #
 # Tracking is enabled if :data:`context_tracking_host` is non-empty. Set to ``stdout``
 # to just print the message to standard out instead, for testing purposes.
-# Otherwise, ``{host}[:{port}]`` is expected.
+# Otherwise, ``{host}[:{port}]`` is expected. An ``amqp://`` or ``amqps://``
+# prefix is also accepted.
+#
+# To connect to a broker over TLS, use an ``amqps://{host}[:{port}]`` host. The
+# port defaults to 5671. The broker's certificate and hostname are always
+# verified. If ``ssl_ca_file`` is set in :data:`context_tracking_amqp`, only that
+# CA file is trusted. Otherwise Python's default CA locations are used.
+#
+# If installed in rez's Python, these packages are used too, though note that you have
+# to manually install them:
+#
+# - `truststore <https://pypi.org/project/truststore/>`_ (Python 3.10+): As the name suggests,
+#   it uses the system's trust store. This is the best option to ensure that TLS will work.
+# - `certifi <https://pypi.org/project/certifi/>`_: This should only be used when absolutely needed.
+#   ``certifi`` bundles CAs and as such, you will be responsible to keep it up-to-date.
+#
+# If you install ``truststore`` or ``certifi``, only install one of them. If both are
+# installed, ``truststore`` will win.
+#
+# For a broker with a certificate from an internal CA, setting ``ssl_ca_file``
+# is the most reliable choice on every platform. For mutual TLS, set
+# ``ssl_cert_file`` to the client certificate, and ``ssl_key_file`` to its private
+# key if the key is not in the certificate file. For example:
+#
+# .. code-block:: python
+#
+#    context_tracking_host = "amqps://broker.example.com"
+#    context_tracking_amqp = {
+#        "userid": "rez",
+#        "password": "secret",
+#        "exchange_name": "rez",
+#        "ssl_ca_file": "/etc/ssl/certs/my-ca.pem",
+#    }
 #
 # If the broker is unreachable and :data:`context_tracking_host` is set, a warning
 # is printed. If :data:`context_tracking_host` is empty (the default), connection
@@ -719,7 +751,10 @@ context_tracking_amqp = {
     "connect_timeout": 10,
     "exchange_name": '',
     "exchange_routing_key": 'REZ.CONTEXT',
-    "message_delivery_mode": 1
+    "message_delivery_mode": 1,
+    "ssl_ca_file": '',
+    "ssl_cert_file": '',
+    "ssl_key_file": ''
 }
 
 # See :data:`context_tracking_host`
