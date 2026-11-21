@@ -14,6 +14,7 @@ import subprocess
 
 try:
     from setuptools import setup, find_packages
+    from setuptools.command.install_scripts import install_scripts
     from distutils.command.build_scripts import build_scripts
     from wheel.bdist_wheel import bdist_wheel
     import packaging.tags
@@ -27,7 +28,7 @@ src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
 
 from rez.utils._version import _rez_version
-from rez.cli._entry_points import get_specifications
+from rez.cli._entry_points import get_specifications, EntryPointType
 
 
 def find_files(pattern, path=None, root="rez"):
@@ -70,7 +71,7 @@ if not sys.flags.ignore_environment and platform.system() != 'Windows':
     os.execvp(sys.executable, args)
 from rez.cli._entry_points import {0}
 if __name__ == '__main__':
-    sys.argv[0] = re.sub(r'(-script\\.pyw|\\.exe)?$', '', sys.argv[0])
+    sys.argv[0] = re.sub(r'(-script\\.pyw?|\\.exe)$', '', sys.argv[0])
     sys.exit({0}())
 """
 
@@ -85,87 +86,59 @@ def _get_platform():
 class rez_build_scripts(build_scripts):
     def finalize_options(self):
         build_scripts.finalize_options(self)
-        self.build_dir = os.path.join(self.build_dir, "rez")
+        if platform.system() != "Windows":
+            self.build_dir = os.path.join(self.build_dir, "rez")
 
     def run(self):
         logging.getLogger().info("running rez's customized build_scripts command")
+        with tempfile.TemporaryDirectory(prefix="rez-scripts-") as tmpdir:
+            scripts = []
+            for command in self.scripts:
+                spec = get_specifications()[command]
+                filename = command
+                if platform.system() == "Windows":
+                    filename = "{0}-script.py".format(command)
+                    if spec.type is EntryPointType.gui:
+                        filename += "w"
+                path = os.path.join(tmpdir, filename)
+                with open(path, "w") as fd:
+                    fd.write(SCRIPT_TEMPLATE.format(spec.func))
+                scripts.append(path)
+            self.scripts = scripts
+            return build_scripts.run(self)
 
-        scripts = []
-        tmpdir = tempfile.mkdtemp("rez-scripts")
-        tmpdir_launchers = tempfile.mkdtemp("rez-scripts-launchers")
 
-        try:
-            os.makedirs(self.build_dir)
-        except OSError:
-            pass
-
-        cli_launcher_path = os.path.join(
-            tmpdir_launchers,
-            "t-{0}.exe".format(_get_platform().split("_", 1)[-1]),
-        )
-
-        gui_launcher_path = os.path.join(
-            tmpdir_launchers,
-            "w-{0}.exe".format(_get_platform().split("_", 1)[-1]),
-        )
-
-        if platform.system() == "Windows":
+class rez_install_scripts(install_scripts):
+    def run(self):
+        # <command>-script.py(w) files go in the flat scripts scheme so installers
+        # bind them to Python. Windows binaries use data, which allows Scripts/rez.
+        install_scripts.run(self)
+        install = self.get_finalized_command("install")
+        dest = os.path.join(install.install_data, "Scripts", "rez")
+        self.mkpath(dest)
+        with tempfile.TemporaryDirectory(prefix="rez-launcher-") as tmpdir:
             mapping = {"win_amd64": "x86_64", "win_arm64": "aarch64"}
             zig_args = [
-                sys.executable,
-                "-m",
-                "ziglang",
-                "cc",
-                os.path.join("launcher", "launcher.c"),
+                sys.executable, "-m", "ziglang", "cc", os.path.join("launcher", "launcher.c"),
                 "-std=c99",
                 # Optimize for size.
                 "-Os",
                 # Prevent undefined behavior from becoming illegal instructions.
-                "-fno-sanitize=undefined",
-                "-target",
-                "{0}-windows".format(mapping[_get_platform()]),
-                "-DWIN32",
-                "-DNDEBUG",
+                "-fno-sanitize=undefined", "-target",
+                "{0}-windows".format(mapping[_get_platform()]), "-DWIN32", "-DNDEBUG",
+                "-lshlwapi",
             ]
-
-            args = zig_args + ["-D_CONSOLE", "-o", cli_launcher_path]
-            logging.getLogger().info("Compiling CLI launcher using: %r", " ".join(args))
-            # We compile the console (CLI) launcher.
-            subprocess.check_call(args)
-
-            args = zig_args + ["-D_WINDOWS", "-o", gui_launcher_path]
-            logging.getLogger().info("Compiling GUI launcher using: %r", " ".join(args))
-            # We compile the windows (GUI) launcher.
-            subprocess.check_call(args)
-
-        for command in self.scripts:
-            spec = get_specifications()[command]
-
-            filename = command
-            if platform.system() == "Windows":
-                filename = "{0}-script.py".format(command)
-                if spec.type == "gui":
-                    # For GUI scripts, the launcher will search for a file name <script>.pyw.
-                    filename += "w"
-
-            path = os.path.join(tmpdir, filename)
-            with open(path, "w") as fd:
-                fd.write(SCRIPT_TEMPLATE.format(spec.func))
-
-            scripts.append(path)
-
-            if platform.system() == "Windows":
-                launcher_path = cli_launcher_path
-                if spec.type == "gui":
-                    launcher_path = gui_launcher_path
-
-                self.copy_file(
-                    launcher_path,
-                    os.path.join(self.build_dir, "{0}.exe".format(command))
-                )
-
-        self.scripts = scripts
-        return build_scripts.run(self)
+            cli_launcher = os.path.join(tmpdir, "console.exe")
+            gui_launcher = os.path.join(tmpdir, "gui.exe")
+            subprocess.check_call(zig_args + ["-D_CONSOLE", "-o", cli_launcher])
+            subprocess.check_call(zig_args + [
+                "-D_WINDOWS", "-Wl,--subsystem,windows", "-o", gui_launcher,
+            ])
+            for command, spec in get_specifications().items():
+                launcher = gui_launcher if spec.type is EntryPointType.gui else cli_launcher
+                target = os.path.join(dest, command + ".exe")
+                self.copy_file(launcher, target)
+                self.outfiles.append(target)
 
 
 class rez_wheel(bdist_wheel):
@@ -191,6 +164,8 @@ entrypoints = {}
 # launcher. This could be for performance reasons.
 if os.environ.get("REZ_USE_STANDARD_LAUNCHER") != "1":
     cmdclass = {"build_scripts": rez_build_scripts, "bdist_wheel": rez_wheel}
+    if platform.system() == "Windows":
+        cmdclass["install_scripts"] = rez_install_scripts
     scripts = list(get_specifications().keys())
 else:
     entrypoints ={

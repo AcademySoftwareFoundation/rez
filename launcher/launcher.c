@@ -966,13 +966,20 @@ process(int argc, char * argv[])
     psp[len] = L'\0';
 
 #if !defined(APPENDED_ARCHIVE)
-    /* Replace the .exe with -script.py(w) */
-    wp = wcsstr(psp, L".exe");
-    assert(wp != NULL, "Failed to find \".exe\" in executable name");
+    /* Replace the executable filename's .exe with -script.py(w), then look
+     * in Scripts rather than Scripts\rez. Only the filename is appended. */
+    wchar_t script_name[MAX_PATH];
+    wcscpy_s(script_name, MAX_PATH, PathFindFileNameW(psp));
+    wp = wcsrchr(script_name, L'.');
+    assert(wp != NULL && _wcsicmp(wp, L".exe") == 0,
+           "Executable filename must end in '.exe'");
 
-    len = MAX_PATH - (wp - script_path);
-    assert(len > sizeof(suffix), "Failed to append \"%ls\" suffix", suffix);
-    wcsncpy_s(wp, len, suffix, sizeof(suffix));
+    len = MAX_PATH - (wp - script_name);
+    assert(len > wcslen(suffix), "Failed to append \"%ls\" suffix", suffix);
+    wcscpy_s(wp, len, suffix);
+    assert(PathRemoveFileSpecW(psp), "Failed to locate command directory");
+    assert(PathRemoveFileSpecW(psp), "Failed to locate -script.py(w) directory");
+    assert(PathAppendW(psp, script_name), "Failed to append -script.py(w) filename");
 #endif
 #if defined(APPENDED_ARCHIVE)
     /* Initialise signature dynamically so that it doesn't appear in

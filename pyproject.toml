@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "ziglang", "packaging"]
+requires = ["setuptools", "wheel", "ziglang==0.17.1; platform_system == 'Windows'", "packaging"]
 build-backend = "setuptools.build_meta"
 
 [tool.mypy]

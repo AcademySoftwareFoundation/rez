@@ -10,3 +10,12 @@ with some light modifications:
 
 The launcher is only needed on Windows and is compiled from the setup.py file. MSVC
 isn't required. We use the [Zig](https://ziglang.org) compiler (zig cc) to compile.
+
+On Windows, native commands are wheel data under `.data/data/Scripts/rez`,
+while `<command>-script.py` and `<command>-script.pyw` stay flat under `.data/scripts`. In a virtual environment
+these become `<prefix>/Scripts/rez/<command>.exe` and
+`<prefix>/Scripts/<command>-script.py` (or `.pyw` for GUI commands). The launcher
+looks one directory up for `<command>-script.py(w)` and uses its installer-written shebang
+to start the bound interpreter with `-E`.
+
+Add only `Scripts/rez` to `PATH`, not the parent directory containing Python.

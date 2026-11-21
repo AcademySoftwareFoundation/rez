@@ -39,7 +39,7 @@ jobs:
       run: |
         set -ex
         python -m pip install build
-        python -m build -w . --outdir ./dist
+        python -m build . --outdir ./dist
       env:
         PYTHON_PLAT_NAME: ${{ matrix.arch }}
 
@@ -58,8 +58,8 @@ jobs:
       run: |
         cd dist
         unzip *.whl
-        dumpbin.exe /DEPENDENTS rez-*.data/scripts/rez/rez.exe
-        echo ((Get-Item -Path rez-*.data/scripts/rez/rez.exe).Length / 1kb)
+        dumpbin.exe /DEPENDENTS rez-*.data/data/Scripts/rez/rez.exe
+        echo ((Get-Item -Path rez-*.data/data/Scripts/rez/rez.exe).Length / 1kb)
 
   test:
     name: Test wheels
@@ -87,6 +87,14 @@ jobs:
         pattern: 'wheels-*'
         merge-multiple: true
         path: wheels
+
+    - uses: astral-sh/setup-uv@v6
+      if: runner.os == 'Windows'
+
+    - name: Test Windows pip and uv wheel installs
+      if: runner.os == 'Windows'
+      shell: bash
+      run: python .github/scripts/test_windows_wheel.py wheels/*win_amd64.whl
 
     - name: Install wheel
       shell: bash
