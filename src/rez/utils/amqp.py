@@ -5,6 +5,7 @@
 import atexit
 import json
 import socket
+import ssl
 import time
 import threading
 import logging
@@ -13,7 +14,7 @@ import queue
 
 from rez.utils.logging_ import print_debug, print_error, print_warning
 from rez.vendor.pika.adapters.blocking_connection import BlockingConnection
-from rez.vendor.pika.connection import ConnectionParameters
+from rez.vendor.pika.connection import ConnectionParameters, SSLOptions
 from rez.vendor.pika.credentials import PlainCredentials
 from rez.vendor.pika.exceptions import AMQPConnectionError
 from rez.vendor.pika.spec import BasicProperties
@@ -91,11 +92,6 @@ def _publish_message(host, amqp_settings, routing_key, data) -> bool:
             password=amqp_settings.get("password")
         )
 
-    params = ConnectionParameters(
-        socket_timeout=amqp_settings.get("connect_timeout"),
-        **conn_kwargs
-    )
-
     props = BasicProperties(
         content_type="application/json",
         content_encoding="utf-8",
@@ -103,6 +99,13 @@ def _publish_message(host, amqp_settings, routing_key, data) -> bool:
     )
 
     try:
+        if original_host.startswith("amqps://"):
+            conn_kwargs["ssl_options"] = _create_ssl_options(host, amqp_settings)
+
+        params = ConnectionParameters(
+            socket_timeout=amqp_settings.get("connect_timeout"),
+            **conn_kwargs
+        )
         conn = BlockingConnection(params)
     except (socket.error, AMQPConnectionError) as e:
         if original_host:
@@ -155,6 +158,67 @@ def on_exit() -> None:
 
     while _num_pending and (time.time() - t) < maxtime:
         time.sleep(timeinc)
+
+
+def _create_ssl_options(host, amqp_settings) -> SSLOptions:
+    """Create TLS options that verify the broker's certificate and hostname.
+
+    Only ``ssl_ca_file`` is trusted if set; otherwise see _create_default_ssl_context.
+    ``ssl_cert_file`` (and ``ssl_key_file``, if the key is not in the cert file)
+    enable mutual TLS.
+    """
+    ca_file = amqp_settings.get("ssl_ca_file")
+    if ca_file:
+        context = ssl.create_default_context(cafile=ca_file)
+    else:
+        context = _create_default_ssl_context()
+
+    if amqp_settings.get("ssl_cert_file"):
+        context.load_cert_chain(
+            amqp_settings["ssl_cert_file"],
+            keyfile=amqp_settings.get("ssl_key_file") or None
+        )
+    return SSLOptions(context, server_hostname=host)
+
+
+def _create_default_ssl_context() -> ssl.SSLContext:
+    """Create a TLS context that trusts the system's CAs.
+
+    Python alone only reads OpenSSL's default CA locations, which is the system
+    trust store on Linux but not the Keychain on macOS. Neither package below is
+    a rez dependency; each is used if it is installed:
+
+    - truststore (Python 3.10+) verifies with the OS itself (Keychain on macOS,
+      the certificate store on Windows).
+    - certifi's CA bundle is added to Python's defaults, which on python.org
+      macOS builds are empty.
+    """
+    try:
+        import truststore
+    except ImportError:
+        pass
+    else:
+        if config.debug("context_tracking"):
+            print_debug("Using truststore to configure the AMQP TLS client")
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+
+    context = ssl.create_default_context()
+    try:
+        import certifi
+    except ImportError:
+        pass
+    else:
+        if config.debug("context_tracking"):
+            print_debug("Using certifi to configure the AMQP TLS client: %s" % certifi.where())
+        context.load_verify_locations(cafile=certifi.where())
+        return context
+
+    if config.debug("context_tracking"):
+        print_debug(
+            "truststore and certifi are not installed, falling back to Python's "
+            "default way of loading CAs to connect to the AMQP broker"
+        )
+    return context
 
 
 def parse_host_and_port(url):
