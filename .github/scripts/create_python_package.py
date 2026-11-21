@@ -19,6 +19,7 @@ INTERPRETERS = {
     ("Windows", "AMD64"): "https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-{version}+20240415-x86_64-pc-windows-msvc-install_only.tar.gz",
     ("Linux", "x86_64"): "https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-{version}+20240415-x86_64-unknown-linux-gnu-install_only.tar.gz",
     ("Darwin", "x86_64"): "https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-{version}+20240415-x86_64-apple-darwin-install_only.tar.gz",
+    ("Darwin", "arm64"): "https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-{version}+20240415-aarch64-apple-darwin-install_only.tar.gz",
 }
 
 def make_root(variant: rez.packages.Variant, path: str):
