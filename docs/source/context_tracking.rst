@@ -110,12 +110,6 @@ library), so you need a running message broker that speaks that protocol. Exampl
 Exchange
 --------
 
-.. warning::
-   Rez does **not** create the target exchange. It only publishes to the exchange named
-   in :data:`context_tracking_amqp`, so you must declare that exchange on the broker before
-   you enable tracking. If the exchange does not exist, the broker rejects the publish and
-   the event is lost.
-
 We recommend that you create the exchange as a **durable** exchange of type **topic**:
 
 * **Durable** means the exchange survives a broker restart. A non-durable exchange disappears
@@ -128,6 +122,12 @@ part of your broker's definitions file.
 
 Keep in mind that the broker discards any message that no queue is bound to receive.
 To keep events, bind at least one queue to the exchange (see :ref:`context-tracking-persisting-events`).
+
+.. warning::
+   Rez does **not** create the target exchange. It only publishes to the exchange named
+   in :data:`context_tracking_amqp`, so you must declare that exchange on the broker before
+   you enable tracking. If the exchange does not exist, the broker rejects the publish and
+   the event is lost.
 
 Configuration
 =============
