@@ -177,3 +177,11 @@ them: which packages and versions are in use, who uses them and where, how usage
 time, which versions are safe to retire, and how solve and load times develop. Because the
 listener is decoupled from rez through the broker, it can be taken down for maintenance without
 affecting users, as long as the queue is durable and messages are published as persistent.
+
+See :doc:`context_tracking_example_consumer` for a minimal listener that writes events
+from RabbitMQ to PostgreSQL.
+
+.. toctree::
+   :hidden:
+
+   context_tracking_example_consumer
