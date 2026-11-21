@@ -1972,10 +1972,6 @@ class ResolvedContext(object):
                 not self.success:
             return
 
-        # see PackageCache.add_variants
-        if self.package_cache_async and not system.is_production_rez_install:
-            return
-
         pkgcache = self._get_package_cache()
         if pkgcache:
             assert self.resolved_packages is not None

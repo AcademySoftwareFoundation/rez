@@ -14,6 +14,7 @@ from rez.utils.platform_ import platform_
 from rez.exceptions import RezSystemError
 from rez.utils.data_utils import cached_property
 from rez.utils.filesystem import real_path
+import rez.deprecations
 
 
 class System(object):
@@ -200,7 +201,7 @@ class System(object):
     @cached_property
     def rez_bin_path(self):
         """Get path containing rez binaries, or None if no binaries are
-        available, or Rez is not a production install.
+        available.
         """
 
         # Rez install layout will be like:
@@ -233,24 +234,32 @@ class System(object):
 
         i = len(parts) - 1 - i  # unreverse the index
 
-        # find rez bin path and look for the production install marker file
+        # find rez bin path
         if platform.system() == "Windows":
             bin_dirname = "Scripts"
         else:
             bin_dirname = "bin"
 
         binpath = os.path.sep.join(parts[:i] + [bin_dirname, "rez"])
-
-        validation_file = os.path.join(binpath, ".rez_production_install")
-        if os.path.exists(validation_file):
+        if os.path.exists(binpath):
             return real_path(binpath)
 
         return None
 
     @property
-    def is_production_rez_install(self):
-        """Return True if this is a production rez install."""
-        return bool(self.rez_bin_path)
+    def is_production_rez_install(self) -> bool:
+        """Return True if this is a production rez install.
+
+        .. deprecated:: 3.2.0
+           Starting from 3.2.0, all installs are production installs. This function will be removed
+           in a future version.
+        """
+        rez.deprecations.warn(
+            "system.is_production_rez_install is deprecated and slated for "
+            "removal in a future version.",
+            rez.deprecations.RezDeprecationWarning,
+        )
+        return True
 
     @property
     def selftest_is_running(self):
