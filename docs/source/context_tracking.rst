@@ -16,16 +16,18 @@ Events
 Rez emits two kinds of events, which are called *actions*:
 
 ``created``
-   A new context was constructed. This either caused a resolve or fetched one from the
-   :doc:`resolve cache <caching>`. For example, every ``rez-env`` invocation emits it.
+   A new context was resolved, either by running the solver or by fetching the result from the
+   :doc:`resolve cache <caching>`. For example, ``rez-env foo`` emits it.
+
+   Rez sends it once the solve has finished, also when the solve failed because of a conflict
+   between requirements. The context's ``status`` field tells you which. A request for a
+   package or version that doesn't exist raises an error before the solve finishes, so it sends
+   no event at all. Tracking data therefore doesn't show these failures.
 
 ``sourced``
-   An existing context was recreated, for example by loading an ``.rxt`` file.
-
-Rez sends the ``created`` event once the solve has finished, whether it succeeded or failed
-because of a conflict between requirements. The context's ``status`` field tells you which.
-A request for a package or version that doesn't exist raises an error before the solve
-finishes, so it sends no event at all. Tracking data therefore doesn't show these failures.
+   An existing context was loaded instead of resolved, for example from an ``.rxt`` file with
+   ``rez-env --input``. With ``rez-env --input --patch``, rez loads the context and then resolves
+   the patched request, so it sends a ``sourced`` event followed by a ``created`` event.
 
 Each event is published as a JSON message that looks like this:
 
@@ -102,21 +104,8 @@ library), so you need a running message broker that speaks that protocol. Exampl
   or `CloudAMQP <https://www.cloudamqp.com/>`_
 
 .. note::
-   AMQP 1.0 is **not** supported. Despite the similar name and version number, AMQP 1.0 is
-   not a newer iteration of AMQP 0.9.1. It is a complete re-imagining of the protocol with a
-   fundamentally different approach, and the two are not compatible with each other.
-
-   AMQP 0.9.1 defines both a wire protocol and a broker model: exchanges, queues and the
-   bindings between them are part of the specification, and clients publish messages to an
-   exchange with a routing key. AMQP 1.0 drops the broker model entirely. It only defines how
-   two peers transfer messages between each other, and leaves it to each implementation to
-   decide what exists on the other end. Concepts that rez relies on, such as exchanges and
-   routing keys, simply do not exist in AMQP 1.0.
-
-   Be careful when a product advertises "AMQP support", and check which version it means.
-   Brokers and services that only implement AMQP 1.0, such as ActiveMQ Classic, ActiveMQ Artemis
-   or Azure Service Bus, will not work with rez. Brokers that support both versions, such as
-   RabbitMQ, work fine, because rez uses their AMQP 0.9.1 interface.
+   Rez only supports AMQP 0.9.1. AMQP 1.0 is not support. Make sure to choose a broker that
+   fully supports 0.9.1.
 
 Exchange
 --------
@@ -127,9 +116,15 @@ Exchange
    you enable tracking. If the exchange does not exist, the broker rejects the publish and
    the event is lost.
 
-A durable ``topic`` exchange works well because it lets consumers bind with patterns such as
-``REZ.CONTEXT.*`` or ``REZ.CONTEXT.CREATED``. With RabbitMQ, you can create it in the
-management UI, with ``rabbitmqadmin``, or as part of your broker's definitions file.
+We recommend that you create the exchange as a **durable** exchange of type **topic**:
+
+* **Durable** means the exchange survives a broker restart. A non-durable exchange disappears
+  when the broker restarts, and rez's events are lost until you create it again.
+* **Topic** means consumers can choose which events they receive by binding with a pattern
+  such as ``REZ.CONTEXT.*`` (all events) or ``REZ.CONTEXT.CREATED`` (only ``created`` events).
+
+With RabbitMQ, you can create the exchange in the management UI, with ``rabbitmqadmin``, or as
+part of your broker's definitions file.
 
 Keep in mind that the broker discards any message that no queue is bound to receive.
 To keep events, bind at least one queue to the exchange (see :ref:`context-tracking-persisting-events`).
