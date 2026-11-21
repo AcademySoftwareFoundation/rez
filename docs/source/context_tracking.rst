@@ -125,6 +125,7 @@ the broker address in the form ``{host}[:{port}]``. Connection settings go in
 :data:`context_tracking_amqp`:
 
 .. code-block:: python
+   :caption: rezconfig.py
 
    context_tracking_host = "amqp.example.com:5672"
 
