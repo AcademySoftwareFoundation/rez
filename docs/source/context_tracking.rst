@@ -10,6 +10,8 @@ You can use that to answer questions such as "Is anybody still using ``maya-2022
 
 Tracking is disabled by default.
 
+.. _context-tracking-events:
+
 Events
 ======
 
@@ -28,6 +30,11 @@ Rez emits two kinds of events, which are called *actions*:
    An existing context was loaded instead of resolved, for example from an ``.rxt`` file with
    ``rez-env --input``. With ``rez-env --input --patch``, rez loads the context and then resolves
    the patched request, so it sends a ``sourced`` event followed by a ``created`` event.
+
+Events aren't limited to ``rez-env``. Every context rez resolves sends a ``created`` event,
+including the build contexts of ``rez-build`` and ``rez-release`` and contexts created through
+the Python API. To tell build contexts apart from the rest, add ``"building"`` to
+:data:`context_tracking_context_fields`.
 
 Each event is published as a JSON message that looks like this:
 
@@ -157,6 +164,8 @@ persistent, meaning the broker writes the message to disk so that it survives a 
 Rez publishes messages in a background thread, so tracking does not slow down resolves.
 When the process exits, rez waits up to five seconds for pending messages to be sent.
 If publishing fails, rez prints an error but the context itself is unaffected.
+
+.. _context-tracking-lost-events:
 
 .. note::
    Rez does not retry or buffer events. An event is lost if the broker can't be reached when

@@ -4,6 +4,12 @@ Example consumer
 
 This page shows a minimal consumer for :doc:`context tracking <context_tracking>` events.
 
+.. note::
+   The consumer can only store the events rez sends. Not every resolve sends one: a request
+   for a package or version that doesn't exist sends no event (see
+   :ref:`context-tracking-events`). Events that rez sends while the broker can't be reached
+   are lost (see :ref:`this note <context-tracking-lost-events>`).
+
 
 What it does
 ============
@@ -35,7 +41,7 @@ What it leaves out
 * configuration for rez's default exchange, extra fields mapped to their own columns, health
   checks, Prometheus metrics, and a Docker image.
 
-Tested with Python 3.10 and pika 1.5. pika 1.5 warns that ``BlockingConnection`` is deprecated in
+Tested with Python 3.10, 3.11 and 3.13 and pika 1.5. pika 1.5 warns that ``BlockingConnection`` is deprecated in
 favour of its new thread-based ``Connection``; it still works and remains available until pika 2.0.
 
 Running it
