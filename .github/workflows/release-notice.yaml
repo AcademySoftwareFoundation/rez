@@ -21,4 +21,4 @@ jobs:
         slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
         slack_channel: "#release-announcements"
         project_logo: "https://artwork.aswf.io/projects/rez/icon/black/rez-icon-black.png"
-      uses: linuxfoundation/slack-release-notifier@4dcaff18c5356db866557089a4b234c1d7e49c55 # 20261117
+      uses: linuxfoundation/slack-release-notifier@3175c5a526af7aa9ffd458241f9d28de81363b69 # 20261119
