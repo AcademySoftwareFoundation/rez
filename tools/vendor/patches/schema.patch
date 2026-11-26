@@ -1,0 +1,891 @@
+diff --git a/schema.py b/schema.py
+index 9158c68..24f07b4 100644
+--- a/schema.py
++++ b/schema.py
+@@ -1,4 +1,8 @@
+-__version__ = '0.3.1'
++# REZ: added a .rez to version
++# REZ: added date to version to indicate a non-official release
++__version__ = '0.3.1.2015-03-04.rez'
++# REZ: added a __revision__ attr
++__revision__ = '916ba05e22b7b370b3586f97c40695e7b9e7fe33'
+ 
+ 
+ class SchemaError(Exception):
+@@ -31,8 +35,9 @@ class And(object):
+         self._error = kw.get('error')
+ 
+     def __repr__(self):
++        # REZ: Switched to use a map operation instead of list comprehension.
+         return '%s(%s)' % (self.__class__.__name__,
+-                           ', '.join(repr(a) for a in self._args))
++                           ', '.join(map(repr, self._args)))
+ 
+     def validate(self, data):
+         for s in [Schema(s, error=self._error) for s in self._args]:
+@@ -78,18 +83,26 @@ COMPARABLE, CALLABLE, VALIDATOR, TYPE, DICT, ITERABLE = range(6)
+ 
+ def priority(s):
+     """Return priority for a given object."""
+-    if type(s) in (list, tuple, set, frozenset):
+-        return ITERABLE
+-    if type(s) is dict:
+-        return DICT
+-    if issubclass(type(s), type):
+-        return TYPE
++    # REZ: Previously this value was calculated in place many times which is
++    #      expensive.  Do it once early.
++    # REZ: Changed this to output a list, so that can nicely sort "validate"
++    #      items by the sub-priority of their schema
++    type_of_s = type(s)
++    if type_of_s in (list, tuple, set, frozenset):
++        return [ITERABLE]
++    if type_of_s is dict:
++        return [DICT]
++    if issubclass(type_of_s, type):
++        return [TYPE]
+     if hasattr(s, 'validate'):
+-        return VALIDATOR
++        p = [VALIDATOR]
++        if hasattr(s, "_schema"):
++            p.extend(priority(s._schema))
++        return p
+     if callable(s):
+-        return CALLABLE
++        return [CALLABLE]
+     else:
+-        return COMPARABLE
++        return [COMPARABLE]
+ 
+ 
+ class Schema(object):
+@@ -103,39 +116,91 @@ class Schema(object):
+ 
+     def validate(self, data):
+         s = self._schema
++        # REZ: Previously this value was calculated in place many times which is
++        #      expensive.  Do it once early.
++        type_of_s = type(s)
+         e = self._error
+-        flavor = priority(s)
++        flavor = priority(s)[0]
+         if flavor == ITERABLE:
+-            data = Schema(type(s), error=e).validate(data)
+-            return type(s)(Or(*s, error=e).validate(d) for d in data)
++            data = Schema(type_of_s, error=e).validate(data)
++            return type_of_s(Or(*s, error=e).validate(d) for d in data)
+         if flavor == DICT:
+-            data = Schema(dict, error=e).validate(data)
++            # REZ: Here we are validating that the data is an instance of the
++            #      same type as the schema (a dict).  However creating a whole
++            #      new instance of ourselves is wasteful.  Instead we inline
++            #      the check that would have be undertaken.  The previous
++            #      approach remains commented below.
++#            data = Schema(dict, error=e).validate(data)
++            if not isinstance(data, dict):
++                raise SchemaError('%r should be instance of %r' % (data, s), e)
+             new = type(data)()  # new - is a dict of the validated values
+             x = None
+             coverage = set()  # non-optional schema keys that were matched
+             covered_optionals = set()
+-            # for each key and value find a schema entry matching them, if any
+-            sorted_skeys = list(sorted(s, key=priority))
++            # For each key and value find a schema entry matching them, if any
++
++            # REZ:  As there is not a one-to-one mapping between keys
++            #      in the dictionary being validated and the schema this
++            #      section would attempt to find the correct section of the
++            #      schema to use by calling itself. For example, to validate
++            #      the following:
++            #
++            #      schema = Schema({
++            #          Optional('foo'):int
++            #          Optional(str):int
++            #      })
++            #
++            #      data = {
++            #          'foo':1,
++            #          'bar':1,
++            #      }
++            #
++            #      a prioritised list of keys from the schema are validated
++            #      against the current key being validated from the data. If
++            #      that validation passes then the value from the schema is
++            #      used to validate the value of the current key. This is
++            #      very inefficient as every key in data is (potentially)
++            #      being compared against every key in schema. This is
++            #      expensive. Now, we use the same approach as
++            #      rez.util._LazyAttributeValidator and try and build a
++            #      mapping between schema keys and data keys, resorting to
++            #      the original approach only in the (very) few cases where
++            #      this map is insufficient.
++            sorted_skeys = None
++            schema_key_map = {}
++            for key in s:
++                key_name = key
++                while isinstance(key_name, Schema):
++                    key_name = key_name._schema
++                if isinstance(key_name, str):
++                    schema_key_map[key_name] = key
+             for key, value in data.items():
+-                valid = False
+-                skey = None
+-                for skey in sorted_skeys:
+-                    svalue = s[skey]
+-                    try:
+-                        nkey = Schema(skey, error=e).validate(key)
+-                    except SchemaError:
+-                        pass
+-                    else:
++                nkey = None
++                if key in schema_key_map:
++                    nkey = key
++                    svalue = s[schema_key_map[key]]
++                    skey = schema_key_map[key]
++                else:
++                    if not sorted_skeys:
++                        sorted_skeys = list(sorted(s, key=priority))
++                    for skey in sorted_skeys:
++                        svalue = s[skey]
+                         try:
+-                            nvalue = Schema(svalue, error=e).validate(value)
+-                        except SchemaError as _x:
+-                            x = _x
+-                            raise
+-                        else:
+-                            (covered_optionals if type(skey) is Optional
+-                             else coverage).add(skey)
+-                            valid = True
+-                            break
++                            nkey = Schema(skey, error=e).validate(key)
++                        except SchemaError:
++                            pass
++                if not nkey:
++                    continue
++                try:
++                    nvalue = Schema(svalue, error=e).validate(value)
++                except SchemaError as _x:
++                    x = _x
++                    raise
++                else:
++                    (covered_optionals if type(skey) is Optional
++                     else coverage).add(skey)
++                    valid = True
++                    #break
+                 if valid:
+                     new[nkey] = nvalue
+                 elif skey is not None:
+@@ -200,7 +265,7 @@ class Optional(Schema):
+         super(Optional, self).__init__(*args, **kwargs)
+         if default is not MARKER:
+             # See if I can come up with a static key to use for myself:
+-            if priority(self._schema) != COMPARABLE:
++            if priority(self._schema)[0] != COMPARABLE:
+                 raise TypeError(
+                         'Optional keys with defaults must have simple, '
+                         'predictable values, like literal strings or ints. '
+diff --git a/test_schema.py b/test_schema.py
+index 4ec9993..57420a1 100644
+--- a/test_schema.py
++++ b/test_schema.py
+@@ -1,19 +1,42 @@
+ from __future__ import with_statement
++from __future__ import absolute_import
++import unittest
+ import os
+-
+-from pytest import raises
+-
+-from schema import Schema, Use, And, Or, Optional, SchemaError
+-
+-
+-try:
+-    basestring
+-except NameError:
+-    basestring = str  # Python 3 does not have basestring
+-
+-
+-SE = raises(SchemaError)
+-
++import tempfile
++from rez.vendor.six import six
++
++from .schema import Schema, Use, And, Or, Optional, SchemaError
++
++
++# REZ: These are some regular expressions used in converting from original
++#      pytest format to standard unittest format
++#
++# re search:
++# with SE: (\w[^\n]*)\(([^)]*)\)(\s*#[^\n]*)?\n
++# re replace:
++# self.assertRaises(SchemaError, \1, \2)\3\n
++#
++# [Note that you still need to de-indent after applying this]
++# re search:
++# (    ( *))with SE:\n\1    try:\n((?:(?:\1        [^\n]*| *)\n)*?)\1    except SchemaError as e:\n((?:(?:\1        [^\n]*| *)\n)*?)\1        raise\n
++# re replace:
++# \1    try:\n\3\1        self.fail("SchemaError should have been raised")\n\1    except SchemaError as e:\n\4
++#
++# [Note that if you apply this after the new setUpClass method is created, you
++#  need to skip applying this for the first match, where cls.test_file_name is
++#  assigned!]
++# re search:
++# '(\./)?LICENSE-MIT'
++# re replace:
++# self.test_file_name
++#
++# re search:
++# ^\n\n( *)def test_([a-zA-Z0-9_]+)\(\):
++# re replace:
++# \n\1def test_\2(self):
++
++if not six.PY2:
++    basestring = str
+ 
+ def ve(_):
+     raise ValueError()
+@@ -23,339 +46,334 @@ def se(_):
+     raise SchemaError('first auto', 'first error')
+ 
+ 
+-def test_schema():
+-
+-    assert Schema(1).validate(1) == 1
+-    with SE: Schema(1).validate(9)
+-
+-    assert Schema(int).validate(1) == 1
+-    with SE: Schema(int).validate('1')
+-    assert Schema(Use(int)).validate('1') == 1
+-    with SE: Schema(int).validate(int)
+-
+-    assert Schema(str).validate('hai') == 'hai'
+-    with SE: Schema(str).validate(1)
+-    assert Schema(Use(str)).validate(1) == '1'
+-
+-    assert Schema(list).validate(['a', 1]) == ['a', 1]
+-    assert Schema(dict).validate({'a': 1}) == {'a': 1}
+-    with SE: Schema(dict).validate(['a', 1])
+-
+-    assert Schema(lambda n: 0 < n < 5).validate(3) == 3
+-    with SE: Schema(lambda n: 0 < n < 5).validate(-1)
+-
+-
+-def test_validate_file():
+-    assert Schema(
+-            Use(open)).validate('LICENSE-MIT').read().startswith('Copyright')
+-    with SE: Schema(Use(open)).validate('NON-EXISTENT')
+-    assert Schema(os.path.exists).validate('.') == '.'
+-    with SE: Schema(os.path.exists).validate('./non-existent/')
+-    assert Schema(os.path.isfile).validate('LICENSE-MIT') == 'LICENSE-MIT'
+-    with SE: Schema(os.path.isfile).validate('NON-EXISTENT')
+-
+-
+-def test_and():
+-    assert And(int, lambda n: 0 < n < 5).validate(3) == 3
+-    with SE: And(int, lambda n: 0 < n < 5).validate(3.33)
+-    assert And(Use(int), lambda n: 0 < n < 5).validate(3.33) == 3
+-    with SE: And(Use(int), lambda n: 0 < n < 5).validate('3.33')
+-
+-
+-def test_or():
+-    assert Or(int, dict).validate(5) == 5
+-    assert Or(int, dict).validate({}) == {}
+-    with SE: Or(int, dict).validate('hai')
+-    assert Or(int).validate(4)
+-    with SE: Or().validate(2)
+-
++class TestSchema(unittest.TestCase):
+ 
+-def test_validate_list():
+-    assert Schema([1, 0]).validate([1, 0, 1, 1]) == [1, 0, 1, 1]
+-    assert Schema([1, 0]).validate([]) == []
+-    with SE: Schema([1, 0]).validate(0)
+-    with SE: Schema([1, 0]).validate([2])
+-    assert And([1, 0], lambda l: len(l) > 2).validate([0, 1, 0]) == [0, 1, 0]
+-    with SE: And([1, 0], lambda l: len(l) > 2).validate([0, 1])
++    @classmethod
++    def setUpClass(cls):
++        cls.test_file_fd, cls.test_file_name = tempfile.mkstemp(suffix='LICENSE-MIT')
+ 
++        with open(cls.test_file_name, "w") as f:
++            f.write("Copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>")
+ 
+-def test_list_tuple_set_frozenset():
+-    assert Schema([int]).validate([1, 2])
+-    with SE: Schema([int]).validate(['1', 2])
+-    assert Schema(set([int])).validate(set([1, 2])) == set([1, 2])
+-    with SE: Schema(set([int])).validate([1, 2])  # not a set
+-    with SE: Schema(set([int])).validate(['1', 2])
+-    assert Schema(tuple([int])).validate(tuple([1, 2])) == tuple([1, 2])
+-    with SE: Schema(tuple([int])).validate([1, 2])  # not a set
+-
+-
+-def test_strictly():
+-    assert Schema(int).validate(1) == 1
+-    with SE: Schema(int).validate('1')
+-
+-
+-def test_dict():
+-    assert Schema({'key': 5}).validate({'key': 5}) == {'key': 5}
+-    with SE: Schema({'key': 5}).validate({'key': 'x'})
+-    assert Schema({'key': int}).validate({'key': 5}) == {'key': 5}
+-    assert Schema({'n': int, 'f': float}).validate(
+-            {'n': 5, 'f': 3.14}) == {'n': 5, 'f': 3.14}
+-    with SE: Schema({'n': int, 'f': float}).validate(
+-            {'n': 3.14, 'f': 5})
+-    with SE:
++    @classmethod
++    def tearDownClass(cls):
++        try:
++            os.remove(cls.test_file_name)
++        except OSError:
++            pass
++
++    def test_schema(self):
++
++        assert Schema(1).validate(1) == 1
++        self.assertRaises(SchemaError, Schema(1).validate, 9)
++
++        assert Schema(int).validate(1) == 1
++        self.assertRaises(SchemaError, Schema(int).validate, '1')
++        assert Schema(Use(int)).validate('1') == 1
++        self.assertRaises(SchemaError, Schema(int).validate, int)
++
++        assert Schema(str).validate('hai') == 'hai'
++        self.assertRaises(SchemaError, Schema(str).validate, 1)
++        assert Schema(Use(str)).validate(1) == '1'
++
++        assert Schema(list).validate(['a', 1]) == ['a', 1]
++        assert Schema(dict).validate({'a': 1}) == {'a': 1}
++        self.assertRaises(SchemaError, Schema(dict).validate, ['a', 1])
++
++        assert Schema(lambda n: 0 < n < 5).validate(3) == 3
++        self.assertRaises(SchemaError, Schema(lambda n: 0 < n < 5).validate, -1)
++
++    def test_validate_file(self):
++        with open(self.test_file_name) as f:
++            assert Schema(Use(lambda _: f)).validate(
++                self.test_file_name).read().startswith('Copyright')
++        self.assertRaises(SchemaError, Schema(Use(open)).validate, 'NON-EXISTENT')
++        assert Schema(os.path.exists).validate('.') == '.'
++        self.assertRaises(SchemaError, Schema(os.path.exists).validate, './non-existent/')
++        assert Schema(os.path.isfile).validate(self.test_file_name) == self.test_file_name
++        self.assertRaises(SchemaError, Schema(os.path.isfile).validate, 'NON-EXISTENT')
++
++    def test_and(self):
++        assert And(int, lambda n: 0 < n < 5).validate(3) == 3
++        self.assertRaises(SchemaError, And(int, lambda n: 0 < n < 5).validate, 3.33)
++        assert And(Use(int), lambda n: 0 < n < 5).validate(3.33) == 3
++        self.assertRaises(SchemaError, And(Use(int), lambda n: 0 < n < 5).validate, '3.33')
++
++    def test_or(self):
++        assert Or(int, dict).validate(5) == 5
++        assert Or(int, dict).validate({}) == {}
++        self.assertRaises(SchemaError, Or(int, dict).validate, 'hai')
++        assert Or(int).validate(4)
++        self.assertRaises(SchemaError, Or().validate, 2)
++
++    def test_validate_list(self):
++        assert Schema([1, 0]).validate([1, 0, 1, 1]) == [1, 0, 1, 1]
++        assert Schema([1, 0]).validate([]) == []
++        self.assertRaises(SchemaError, Schema([1, 0]).validate, 0)
++        self.assertRaises(SchemaError, Schema([1, 0]).validate, [2])
++        assert And([1, 0], lambda l: len(l) > 2).validate([0, 1, 0]) == [0, 1, 0]
++        self.assertRaises(SchemaError, And([1, 0], lambda l: len(l) > 2).validate, [0, 1])
++
++    def test_list_tuple_set_frozenset(self):
++        assert Schema([int]).validate([1, 2])
++        self.assertRaises(SchemaError, Schema([int]).validate, ['1', 2])
++        assert Schema(set([int])).validate(set([1, 2])) == set([1, 2])
++        self.assertRaises(SchemaError, Schema(set([int])).validate, [1, 2])  # not a set
++        self.assertRaises(SchemaError, Schema(set([int])).validate, ['1', 2])
++        assert Schema(tuple([int])).validate(tuple([1, 2])) == tuple([1, 2])
++        self.assertRaises(SchemaError, Schema(tuple([int])).validate, [1, 2])  # not a set
++
++    def test_strictly(self):
++        assert Schema(int).validate(1) == 1
++        self.assertRaises(SchemaError, Schema(int).validate, '1')
++
++    def test_dict(self):
++        assert Schema({'key': 5}).validate({'key': 5}) == {'key': 5}
++        self.assertRaises(SchemaError, Schema({'key': 5}).validate, {'key': 'x'})
++        assert Schema({'key': int}).validate({'key': 5}) == {'key': 5}
++        assert Schema({'n': int, 'f': float}).validate(
++                {'n': 5, 'f': 3.14}) == {'n': 5, 'f': 3.14}
++        self.assertRaises(SchemaError, Schema({'n': int, 'f': float}).validate, 
++                {'n': 3.14, 'f': 5})
+         try:
+             Schema({'key': 5}).validate({})
++            self.fail("SchemaError should have been raised")
+         except SchemaError as e:
+             assert e.args[0] in ["missed keys set(['key'])",
+                                  "missed keys {'key'}"]  # Python 3 style
+-            raise
+-    with SE:
+         try:
+             Schema({'key': 5}).validate({'n': 5})
++            self.fail("SchemaError should have been raised")
+         except SchemaError as e:
+             assert e.args[0] in ["missed keys set(['key'])",
+                                  "missed keys {'key'}"]  # Python 3 style
+-            raise
+-    with SE:
+         try:
+             Schema({}).validate({'n': 5})
++            self.fail("SchemaError should have been raised")
+         except SchemaError as e:
+             assert e.args[0] == "wrong keys 'n' in {'n': 5}"
+-            raise
+-    with SE:
+         try:
+             Schema({'key': 5}).validate({'key': 5, 'bad': 5})
++            self.fail("SchemaError should have been raised")
+         except SchemaError as e:
+             assert e.args[0] in ["wrong keys 'bad' in {'key': 5, 'bad': 5}",
+                                  "wrong keys 'bad' in {'bad': 5, 'key': 5}"]
+-            raise
+-    with SE:
+         try:
+             Schema({}).validate({'a': 5, 'b': 5})
++            self.fail("SchemaError should have been raised")
+         except SchemaError as e:
+             assert e.args[0] in ["wrong keys 'a', 'b' in {'a': 5, 'b': 5}",
+                                  "wrong keys 'a', 'b' in {'b': 5, 'a': 5}"]
+-            raise
+-
+-
+-def test_dict_keys():
+-    assert Schema({str: int}).validate(
+-            {'a': 1, 'b': 2}) == {'a': 1, 'b': 2}
+-    with SE: Schema({str: int}).validate({1: 1, 'b': 2})
+-    assert Schema({Use(str): Use(int)}).validate(
+-            {1: 3.14, 3.14: 1}) == {'1': 3, '3.14': 1}
+-
+-
+-def test_dict_optional_keys():
+-    with SE: Schema({'a': 1, 'b': 2}).validate({'a': 1})
+-    assert Schema({'a': 1, Optional('b'): 2}).validate({'a': 1}) == {'a': 1}
+-    assert Schema({'a': 1, Optional('b'): 2}).validate(
+-            {'a': 1, 'b': 2}) == {'a': 1, 'b': 2}
+-    # Make sure Optionals are favored over types:
+-    assert Schema({basestring: 1,
+-                   Optional('b'): 2}).validate({'a': 1, 'b': 2}) == {'a': 1, 'b': 2}
+-
+-
+-def test_dict_optional_defaults():
+-    # Optionals fill out their defaults:
+-    assert Schema({Optional('a', default=1): 11,
+-                   Optional('b', default=2): 22}).validate({'a': 11}) == {'a': 11, 'b': 2}
+-
+-    # Optionals take precedence over types. Here, the "a" is served by the
+-    # Optional:
+-    assert Schema({Optional('a', default=1): 11,
+-                   basestring: 22}).validate({'b': 22}) == {'a': 1, 'b': 22}
+-
+-    with raises(TypeError):
+-        Optional(And(str, Use(int)), default=7)
+-
+-
+-def test_complex():
+-    s = Schema({'<file>': And([Use(open)], lambda l: len(l)),
+-                '<path>': os.path.exists,
+-                Optional('--count'): And(int, lambda n: 0 <= n <= 5)})
+-    data = s.validate({'<file>': ['./LICENSE-MIT'], '<path>': './'})
+-    assert len(data) == 2
+-    assert len(data['<file>']) == 1
+-    assert data['<file>'][0].read().startswith('Copyright')
+-    assert data['<path>'] == './'
+-
+-
+-def test_nice_errors():
+-    try:
+-        Schema(int, error='should be integer').validate('x')
+-    except SchemaError as e:
+-        assert e.errors == ['should be integer']
+-    try:
+-        Schema(Use(float), error='should be a number').validate('x')
+-    except SchemaError as e:
+-        assert e.code == 'should be a number'
+-    try:
+-        Schema({Optional('i'): Use(int, error='should be a number')}).validate({'i': 'x'})
+-    except SchemaError as e:
+-        assert e.code == 'should be a number'
+-
+-
+-def test_use_error_handling():
+-    try:
+-        Use(ve).validate('x')
+-    except SchemaError as e:
+-        assert e.autos == ["ve('x') raised ValueError()"]
+-        assert e.errors == [None]
+-    try:
+-        Use(ve, error='should not raise').validate('x')
+-    except SchemaError as e:
+-        assert e.autos == ["ve('x') raised ValueError()"]
+-        assert e.errors == ['should not raise']
+-    try:
+-        Use(se).validate('x')
+-    except SchemaError as e:
+-        assert e.autos == [None, 'first auto']
+-        assert e.errors == [None, 'first error']
+-    try:
+-        Use(se, error='second error').validate('x')
+-    except SchemaError as e:
+-        assert e.autos == [None, 'first auto']
+-        assert e.errors == ['second error', 'first error']
+-
+-
+-def test_or_error_handling():
+-    try:
+-        Or(ve).validate('x')
+-    except SchemaError as e:
+-        assert e.autos[0].startswith('Or(')
+-        assert e.autos[0].endswith(") did not validate 'x'")
+-        assert e.autos[1] == "ve('x') raised ValueError()"
+-        assert len(e.autos) == 2
+-        assert e.errors == [None, None]
+-    try:
+-        Or(ve, error='should not raise').validate('x')
+-    except SchemaError as e:
+-        assert e.autos[0].startswith('Or(')
+-        assert e.autos[0].endswith(") did not validate 'x'")
+-        assert e.autos[1] == "ve('x') raised ValueError()"
+-        assert len(e.autos) == 2
+-        assert e.errors == ['should not raise', 'should not raise']
+-    try:
+-        Or('o').validate('x')
+-    except SchemaError as e:
+-        assert e.autos == ["Or('o') did not validate 'x'",
+-                           "'o' does not match 'x'"]
+-        assert e.errors == [None, None]
+-    try:
+-        Or('o', error='second error').validate('x')
+-    except SchemaError as e:
+-        assert e.autos == ["Or('o') did not validate 'x'",
+-                           "'o' does not match 'x'"]
+-        assert e.errors == ['second error', 'second error']
+-
+-
+-def test_and_error_handling():
+-    try:
+-        And(ve).validate('x')
+-    except SchemaError as e:
+-        assert e.autos == ["ve('x') raised ValueError()"]
+-        assert e.errors == [None]
+-    try:
+-        And(ve, error='should not raise').validate('x')
+-    except SchemaError as e:
+-        assert e.autos == ["ve('x') raised ValueError()"]
+-        assert e.errors == ['should not raise']
+-    try:
+-        And(str, se).validate('x')
+-    except SchemaError as e:
+-        assert e.autos == [None, 'first auto']
+-        assert e.errors == [None, 'first error']
+-    try:
+-        And(str, se, error='second error').validate('x')
+-    except SchemaError as e:
+-        assert e.autos == [None, 'first auto']
+-        assert e.errors == ['second error', 'first error']
+-
+-
+-def test_schema_error_handling():
+-    try:
+-        Schema(Use(ve)).validate('x')
+-    except SchemaError as e:
+-        assert e.autos == [None, "ve('x') raised ValueError()"]
+-        assert e.errors == [None, None]
+-    try:
+-        Schema(Use(ve), error='should not raise').validate('x')
+-    except SchemaError as e:
+-        assert e.autos == [None, "ve('x') raised ValueError()"]
+-        assert e.errors == ['should not raise', None]
+-    try:
+-        Schema(Use(se)).validate('x')
+-    except SchemaError as e:
+-        assert e.autos == [None, None, 'first auto']
+-        assert e.errors == [None, None, 'first error']
+-    try:
+-        Schema(Use(se), error='second error').validate('x')
+-    except SchemaError as e:
+-        assert e.autos == [None, None, 'first auto']
+-        assert e.errors == ['second error', None, 'first error']
+-
+-
+-def test_use_json():
+-    import json
+-    gist_schema = Schema(And(Use(json.loads),  # first convert from JSON
+-                             {Optional('description'): basestring,
+-                              'public': bool,
+-                              'files': {basestring: {'content': basestring}}}))
+-    gist = '''{"description": "the description for this gist",
+-               "public": true,
+-               "files": {
+-                   "file1.txt": {"content": "String file contents"},
+-                   "other.txt": {"content": "Another file contents"}}}'''
+-    assert gist_schema.validate(gist)
+-
+-
+-def test_error_reporting():
+-    s = Schema({'<files>': [Use(open, error='<files> should be readable')],
+-                '<path>': And(os.path.exists, error='<path> should exist'),
+-                '--count': Or(None, And(Use(int), lambda n: 0 < n < 5),
+-                              error='--count should be integer 0 < n < 5')},
+-               error='Error:')
+-    s.validate({'<files>': [], '<path>': './', '--count': 3})
+-
+-    try:
+-        s.validate({'<files>': [], '<path>': './', '--count': '10'})
+-    except SchemaError as e:
+-        assert e.code == 'Error:\n--count should be integer 0 < n < 5'
+-    try:
+-        s.validate({'<files>': [], '<path>': './hai', '--count': '2'})
+-    except SchemaError as e:
+-        assert e.code == 'Error:\n<path> should exist'
+-    try:
+-        s.validate({'<files>': ['hai'], '<path>': './', '--count': '2'})
+-    except SchemaError as e:
+-        assert e.code == 'Error:\n<files> should be readable'
+-
+-
+-def test_schema_repr():  # what about repr with `error`s?
+-    schema = Schema([Or(None, And(str, Use(float)))])
+-    repr_ = "Schema([Or(None, And(<type 'str'>, Use(<type 'float'>)))])"
+-    # in Python 3 repr contains <class 'str'>, not <type 'str'>
+-    assert repr(schema).replace('class', 'type') == repr_
+-
+-
+-def test_validate_object():
+-    schema = Schema({object: str})
+-    assert schema.validate({42: 'str'}) == {42: 'str'}
+-    with SE: schema.validate({42: 777})
+-
+-
+-def test_issue_9_prioritized_key_comparison():
+-    validate = Schema({'key': 42, object: 42}).validate
+-    assert validate({'key': 42, 777: 42}) == {'key': 42, 777: 42}
+-
+-
+-def test_issue_9_prioritized_key_comparison_in_dicts():
+-    # http://stackoverflow.com/questions/14588098/docopt-schema-validation
+-    s = Schema({'ID': Use(int, error='ID should be an int'),
+-                'FILE': Or(None, Use(open, error='FILE should be readable')),
+-                Optional(str): object})
+-    data = {'ID': 10, 'FILE': None, 'other': 'other', 'other2': 'other2'}
+-    assert s.validate(data) == data
+-    data = {'ID': 10, 'FILE': None}
+-    assert s.validate(data) == data
++
++    def test_dict_keys(self):
++        assert Schema({str: int}).validate(
++                {'a': 1, 'b': 2}) == {'a': 1, 'b': 2}
++        self.assertRaises(SchemaError, Schema({str: int}).validate, {1: 1, 'b': 2})
++        assert Schema({Use(str): Use(int)}).validate(
++                {1: 3.14, 3.14: 1}) == {'1': 3, '3.14': 1}
++
++    def test_dict_optional_keys(self):
++        self.assertRaises(SchemaError, Schema({'a': 1, 'b': 2}).validate, {'a': 1})
++        assert Schema({'a': 1, Optional('b'): 2}).validate({'a': 1}) == {'a': 1}
++        assert Schema({'a': 1, Optional('b'): 2}).validate(
++                {'a': 1, 'b': 2}) == {'a': 1, 'b': 2}
++        # Make sure Optionals are favored over types:
++        assert Schema({basestring: 1,
++                       Optional('b'): 2}).validate({'a': 1, 'b': 2}) == {'a': 1, 'b': 2}
++    
++    
++    def test_dict_optional_defaults(self):
++        # Optionals fill out their defaults:
++        assert Schema({Optional('a', default=1): 11,
++                       Optional('b', default=2): 22}).validate({'a': 11}) == {'a': 11, 'b': 2}
++    
++        # Optionals take precedence over types. Here, the "a" is served by the
++        # Optional:
++        assert Schema({Optional('a', default=1): 11,
++                       basestring: 22}).validate({'b': 22}) == {'a': 1, 'b': 22}
++    
++        self.assertRaises(TypeError, Optional, And(str, Use(int)), default=7)
++
++    def test_complex(self):
++        with open(self.test_file_name) as f:
++            s = Schema({'<file>': And([Use(lambda _: f)], lambda l: len(l)),
++                        '<path>': os.path.exists,
++                        Optional('--count'): And(int, lambda n: 0 <= n <= 5)})
++            data = s.validate({'<file>': [self.test_file_name], '<path>': './'})
++            assert len(data) == 2
++            assert len(data['<file>']) == 1
++            assert data['<file>'][0].read().startswith('Copyright')
++            assert data['<path>'] == './'
++
++    def test_nice_errors(self):
++        try:
++            Schema(int, error='should be integer').validate('x')
++        except SchemaError as e:
++            assert e.errors == ['should be integer']
++        try:
++            Schema(Use(float), error='should be a number').validate('x')
++        except SchemaError as e:
++            assert e.code == 'should be a number'
++        try:
++            Schema({Optional('i'): Use(int, error='should be a number')}).validate({'i': 'x'})
++        except SchemaError as e:
++            assert e.code == 'should be a number'
++
++    def test_use_error_handling(self):
++        try:
++            Use(ve).validate('x')
++        except SchemaError as e:
++            assert e.autos == ["ve('x') raised ValueError()"]
++            assert e.errors == [None]
++        try:
++            Use(ve, error='should not raise').validate('x')
++        except SchemaError as e:
++            assert e.autos == ["ve('x') raised ValueError()"]
++            assert e.errors == ['should not raise']
++        try:
++            Use(se).validate('x')
++        except SchemaError as e:
++            assert e.autos == [None, 'first auto']
++            assert e.errors == [None, 'first error']
++        try:
++            Use(se, error='second error').validate('x')
++        except SchemaError as e:
++            assert e.autos == [None, 'first auto']
++            assert e.errors == ['second error', 'first error']
++
++    def test_or_error_handling(self):
++        try:
++            Or(ve).validate('x')
++        except SchemaError as e:
++            assert e.autos[0].startswith('Or(')
++            assert e.autos[0].endswith(") did not validate 'x'")
++            assert e.autos[1] == "ve('x') raised ValueError()"
++            assert len(e.autos) == 2
++            assert e.errors == [None, None]
++        try:
++            Or(ve, error='should not raise').validate('x')
++        except SchemaError as e:
++            assert e.autos[0].startswith('Or(')
++            assert e.autos[0].endswith(") did not validate 'x'")
++            assert e.autos[1] == "ve('x') raised ValueError()"
++            assert len(e.autos) == 2
++            assert e.errors == ['should not raise', 'should not raise']
++        try:
++            Or('o').validate('x')
++        except SchemaError as e:
++            assert e.autos == ["Or('o') did not validate 'x'",
++                               "'o' does not match 'x'"]
++            assert e.errors == [None, None]
++        try:
++            Or('o', error='second error').validate('x')
++        except SchemaError as e:
++            assert e.autos == ["Or('o') did not validate 'x'",
++                               "'o' does not match 'x'"]
++            assert e.errors == ['second error', 'second error']
++
++    def test_and_error_handling(self):
++        try:
++            And(ve).validate('x')
++        except SchemaError as e:
++            assert e.autos == ["ve('x') raised ValueError()"]
++            assert e.errors == [None]
++        try:
++            And(ve, error='should not raise').validate('x')
++        except SchemaError as e:
++            assert e.autos == ["ve('x') raised ValueError()"]
++            assert e.errors == ['should not raise']
++        try:
++            And(str, se).validate('x')
++        except SchemaError as e:
++            assert e.autos == [None, 'first auto']
++            assert e.errors == [None, 'first error']
++        try:
++            And(str, se, error='second error').validate('x')
++        except SchemaError as e:
++            assert e.autos == [None, 'first auto']
++            assert e.errors == ['second error', 'first error']
++
++    def test_schema_error_handling(self):
++        try:
++            Schema(Use(ve)).validate('x')
++        except SchemaError as e:
++            assert e.autos == [None, "ve('x') raised ValueError()"]
++            assert e.errors == [None, None]
++        try:
++            Schema(Use(ve), error='should not raise').validate('x')
++        except SchemaError as e:
++            assert e.autos == [None, "ve('x') raised ValueError()"]
++            assert e.errors == ['should not raise', None]
++        try:
++            Schema(Use(se)).validate('x')
++        except SchemaError as e:
++            assert e.autos == [None, None, 'first auto']
++            assert e.errors == [None, None, 'first error']
++        try:
++            Schema(Use(se), error='second error').validate('x')
++        except SchemaError as e:
++            assert e.autos == [None, None, 'first auto']
++            assert e.errors == ['second error', None, 'first error']
++
++    def test_use_json(self):
++        import json
++        gist_schema = Schema(And(Use(json.loads),  # first convert from JSON
++                                 {Optional('description'): basestring,
++                                  'public': bool,
++                                  'files': {basestring: {'content': basestring}}}))
++        gist = '''{"description": "the description for this gist",
++                   "public": true,
++                   "files": {
++                       "file1.txt": {"content": "String file contents"},
++                       "other.txt": {"content": "Another file contents"}}}'''
++        assert gist_schema.validate(gist)
++
++    def test_error_reporting(self):
++        s = Schema({'<files>': [Use(open, error='<files> should be readable')],
++                    '<path>': And(os.path.exists, error='<path> should exist'),
++                    '--count': Or(None, And(Use(int), lambda n: 0 < n < 5),
++                                  error='--count should be integer 0 < n < 5')},
++                   error='Error:')
++        s.validate({'<files>': [], '<path>': './', '--count': 3})
++
++        try:
++            s.validate({'<files>': [], '<path>': './', '--count': '10'})
++        except SchemaError as e:
++            assert e.code == 'Error:\n--count should be integer 0 < n < 5'
++        try:
++            s.validate({'<files>': [], '<path>': './hai', '--count': '2'})
++        except SchemaError as e:
++            assert e.code == 'Error:\n<path> should exist'
++        try:
++            s.validate({'<files>': ['hai'], '<path>': './', '--count': '2'})
++        except SchemaError as e:
++            assert e.code == 'Error:\n<files> should be readable'
++
++    def test_schema_repr(self):  # what about repr with `error`s?
++        schema = Schema([Or(None, And(str, Use(float)))])
++        repr_ = "Schema([Or(None, And(<type 'str'>, Use(<type 'float'>)))])"
++        # in Python 3 repr contains <class 'str'>, not <type 'str'>
++        assert repr(schema).replace('class', 'type') == repr_
++
++    def test_validate_object(self):
++        schema = Schema({object: str})
++        assert schema.validate({42: 'str'}) == {42: 'str'}
++        self.assertRaises(SchemaError, schema.validate, {42: 777})
++
++    def test_issue_9_prioritized_key_comparison(self):
++        validate = Schema({'key': 42, object: 42}).validate
++        assert validate({'key': 42, 777: 42}) == {'key': 42, 777: 42}
++
++    def test_issue_9_prioritized_key_comparison_in_dicts(self):
++        # http://stackoverflow.com/questions/14588098/docopt-schema-validation
++        s = Schema({'ID': Use(int, error='ID should be an int'),
++                    'FILE': Or(None, Use(open, error='FILE should be readable')),
++                    Optional(str): object})
++        data = {'ID': 10, 'FILE': None, 'other': 'other', 'other2': 'other2'}
++        assert s.validate(data) == data
++        data = {'ID': 10, 'FILE': None}
++        assert s.validate(data) == data
++
++
++if __name__ == '__main__':
++    unittest.main()

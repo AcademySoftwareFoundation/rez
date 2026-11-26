@@ -1,0 +1,43 @@
+diff --git a/memcache.py b/memcache.py
+index dfbd653..1967dcd 100644
+--- a/memcache.py
++++ b/memcache.py
+@@ -80,7 +80,7 @@ valid_key_chars_re = re.compile(b'[\x21-\x7e\x80-\xff]+$')
+ 
+ 
+ #  Original author: Evan Martin of Danga Interactive
+-__author__ = "Sean Reifschneider <jafo00@gmail.com>"
++__author__ = "Sean Reifschneider <jafo-memcached@tummy.com>"
+ __version__ = "1.59"
+ __copyright__ = "Copyright (C) 2003 Danga Interactive"
+ #  http://en.wikipedia.org/wiki/Python_Software_Foundation_License
+@@ -127,7 +127,7 @@ class Client(threading.local):
+     @group Integers: incr, decr
+     @group Removal: delete, delete_multi
+     @sort: __init__, set_servers, forget_dead_hosts, disconnect_all,
+-           debuglog,\ set, set_multi, add, replace, get, get_multi,
++           debuglog, set, set_multi, add, replace, get, get_multi,
+            incr, decr, delete, delete_multi
+     """
+     _FLAG_PICKLE = 1 << 0
+@@ -325,7 +325,8 @@ class Client(threading.local):
+             readline = s.readline
+             while 1:
+                 line = readline()
+-                if not line or line.decode('ascii').strip() == 'END':
++                # Rez: Patch for https://github.com/AcademySoftwareFoundation/rez/issues/1563.
++                if not line or line.decode('ascii').strip() in ('END', 'RESET'):
+                     break
+                 stats = line.decode('ascii').split(' ', 2)
+                 serverData[stats[1]] = stats[2]
+@@ -1300,8 +1301,8 @@ class Client(threading.local):
+             key = key[1]
+         if key is None:
+             raise Client.MemcachedKeyNoneError("Key is None")
+-        if key is '':
+-            if key_extra_len is 0:
++        if key == '':
++            if key_extra_len == 0:
+                 raise Client.MemcachedKeyNoneError("Key is empty")
+ 
+             #  key is empty but there is some other component to key

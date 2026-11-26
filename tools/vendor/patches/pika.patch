@@ -1,0 +1,200 @@
+diff --git a/__init__.py b/__init__.py
+index c04dd54..0d54d41 100644
+--- a/__init__.py
++++ b/__init__.py
+@@ -4,18 +4,3 @@ import logging
+ 
+ # Add NullHandler before importing Pika modules to prevent logging warnings
+ logging.getLogger(__name__).addHandler(logging.NullHandler())
+-
+-# pylint: disable=C0413
+-
+-from rez.vendor.pika.connection import ConnectionParameters
+-from rez.vendor.pika.connection import URLParameters
+-from rez.vendor.pika.connection import SSLOptions
+-from rez.vendor.pika.credentials import PlainCredentials
+-from rez.vendor.pika.spec import BasicProperties
+-
+-from rez.vendor.pika import adapters
+-from rez.vendor.pika.adapters import BaseConnection
+-from rez.vendor.pika.adapters import BlockingConnection
+-from rez.vendor.pika.adapters import SelectConnection
+-
+-from rez.vendor.pika.adapters.utils.connection_workflow import AMQPConnectionWorkflow
+diff --git a/adapters/base_connection.py b/adapters/base_connection.py
+index 6d38d07..f217ff3 100644
+--- a/adapters/base_connection.py
++++ b/adapters/base_connection.py
+@@ -7,9 +7,7 @@ import abc
+ import functools
+ import logging
+ 
+-import rez.vendor.pika.compat
+ import rez.vendor.pika.exceptions
+-import rez.vendor.pika.tcp_socket_opts
+ 
+ from rez.vendor.pika.adapters.utils import connection_workflow, nbio_interface
+ from rez.vendor.pika import connection
+diff --git a/adapters/blocking_connection.py b/adapters/blocking_connection.py
+index 9846cb2..e12b3bc 100644
+--- a/adapters/blocking_connection.py
++++ b/adapters/blocking_connection.py
+@@ -23,6 +23,7 @@ import functools
+ import logging
+ import threading
+ 
++import rez.vendor.pika.connection
+ import rez.vendor.pika.compat as compat
+ import rez.vendor.pika.exceptions as exceptions
+ import rez.vendor.pika.spec
+diff --git a/adapters/utils/connection_workflow.py b/adapters/utils/connection_workflow.py
+index 95a1f02..2d61435 100644
+--- a/adapters/utils/connection_workflow.py
++++ b/adapters/utils/connection_workflow.py
+@@ -172,7 +172,7 @@ class AMQPConnector(object):
+         self._sock = socket.socket(*self._addr_record[:3])
+         self._sock.setsockopt(rez.vendor.pika.compat.SOL_TCP, socket.TCP_NODELAY, 1)
+         rez.vendor.pika.tcp_socket_opts.set_sock_opts(self._conn_params.tcp_options,
+-                                           self._sock)
++                                                      self._sock)
+         self._sock.setblocking(False)
+ 
+         addr = self._addr_record[4]
+diff --git a/adapters/utils/io_services_utils.py b/adapters/utils/io_services_utils.py
+old mode 100644
+new mode 100755
+index 6634bd4..05def5f
+--- a/adapters/utils/io_services_utils.py
++++ b/adapters/utils/io_services_utils.py
+@@ -15,7 +15,7 @@ import sys
+ import traceback
+ 
+ from rez.vendor.pika.adapters.utils.nbio_interface import (AbstractIOReference,
+-                                                AbstractStreamTransport)
++                                                           AbstractStreamTransport)
+ import rez.vendor.pika.compat
+ import rez.vendor.pika.diagnostic_utils
+ 
+@@ -1020,8 +1020,8 @@ class _AsyncPlaintextTransport(_AsyncTransportBase):
+ 
+         # pika/pika#1286
+         # NOTE: Modify code to write data to buffer before setting writer.
+-        # Otherwise a race condition can occur where ioloop executes writer 
+-        # while buffer is still empty. 
++        # Otherwise a race condition can occur where ioloop executes writer
++        # while buffer is still empty.
+         tx_buffer_was_empty = self.get_write_buffer_size() == 0
+ 
+         self._buffer_tx_data(data)
+@@ -1162,8 +1162,8 @@ class _AsyncSSLTransport(_AsyncTransportBase):
+ 
+         # pika/pika#1286
+         # NOTE: Modify code to write data to buffer before setting writer.
+-        # Otherwise a race condition can occur where ioloop executes writer 
+-        # while buffer is still empty. 
++        # Otherwise a race condition can occur where ioloop executes writer
++        # while buffer is still empty.
+         tx_buffer_was_empty = self.get_write_buffer_size() == 0
+ 
+         self._buffer_tx_data(data)
+diff --git a/adapters/utils/selector_ioloop_adapter.py b/adapters/utils/selector_ioloop_adapter.py
+old mode 100644
+new mode 100755
+index bdd8bf8..a86cb3d
+--- a/adapters/utils/selector_ioloop_adapter.py
++++ b/adapters/utils/selector_ioloop_adapter.py
+@@ -11,7 +11,7 @@ import threading
+ 
+ from rez.vendor.pika.adapters.utils import nbio_interface, io_services_utils
+ from rez.vendor.pika.adapters.utils.io_services_utils import (check_callback_arg,
+-                                                   check_fd_arg)
++                                                              check_fd_arg)
+ 
+ LOGGER = logging.getLogger(__name__)
+ 
+diff --git a/channel.py b/channel.py
+index 8b3a927..38bfd65 100644
+--- a/channel.py
++++ b/channel.py
+@@ -10,10 +10,10 @@ import logging
+ import uuid
+ from rez.vendor.enum import Enum
+ 
+-import rez.vendor.pika.frame as frame
+-import rez.vendor.pika.exceptions as exceptions
+-import rez.vendor.pika.spec as spec
+-import rez.vendor.pika.validators as validators
++from rez.vendor.pika import frame
++from rez.vendor.pika import exceptions
++from rez.vendor.pika import spec
++from rez.vendor.pika import validators
+ from rez.vendor.pika.compat import unicode_type, dictkeys, is_integer
+ from rez.vendor.pika.exchange_type import ExchangeType
+ 
+diff --git a/connection.py b/connection.py
+index c00dc8c..cc56e30 100644
+--- a/connection.py
++++ b/connection.py
+@@ -12,15 +12,16 @@ import numbers
+ import platform
+ import ssl
+ 
++import rez.vendor.pika
+ import rez.vendor.pika.callback
+ import rez.vendor.pika.channel
+ import rez.vendor.pika.compat
+ import rez.vendor.pika.credentials
+-import rez.vendor.pika.exceptions as exceptions
+-import rez.vendor.pika.frame as frame
++from rez.vendor.pika import exceptions
++from rez.vendor.pika import frame
+ import rez.vendor.pika.heartbeat
+-import rez.vendor.pika.spec as spec
+-import rez.vendor.pika.validators as validators
++from rez.vendor.pika import spec
++from rez.vendor.pika import validators
+ from rez.vendor.pika.compat import (
+     xrange,
+     url_unquote,
+@@ -742,7 +743,7 @@ class URLParameters(Parameters):
+         if parts.scheme == 'https':
+             # Create default context which will get overridden by the
+             # ssl_options URL arg, if any
+-            self.ssl_options = rez.vendor.pika.SSLOptions(
++            self.ssl_options = pika.SSLOptions(
+                 context=ssl.create_default_context())
+         elif parts.scheme == 'http':
+             self.ssl_options = None
+@@ -928,7 +929,7 @@ class URLParameters(Parameters):
+                 cxt.set_ciphers(opt_ciphers)
+ 
+             server_hostname = opts.get('server_hostname')
+-            self.ssl_options = rez.vendor.pika.SSLOptions(
++            self.ssl_options = SSLOptions(
+                 context=cxt, server_hostname=server_hostname)
+ 
+     def _set_url_tcp_options(self, value):
+diff --git a/spec.py b/spec.py
+index 641eae5..b3fcb4b 100644
+--- a/spec.py
++++ b/spec.py
+@@ -16,6 +16,7 @@ from rez.vendor.pika import amqp_object
+ from rez.vendor.pika import data
+ from rez.vendor.pika.compat import str_or_bytes, unicode_type
+ from rez.vendor.pika.exchange_type import ExchangeType
++from rez.vendor.pika.delivery_mode import DeliveryMode
+ 
+ # Python 3 support for str object
+ str = bytes
+@@ -2079,7 +2080,10 @@ class BasicProperties(amqp_object.Properties):
+         self.content_type = content_type
+         self.content_encoding = content_encoding
+         self.headers = headers
+-        self.delivery_mode = delivery_mode
++        if isinstance(delivery_mode, DeliveryMode):
++            self.delivery_mode = delivery_mode.value
++        else:
++            self.delivery_mode = delivery_mode
+         self.priority = priority
+         self.correlation_id = correlation_id
+         self.reply_to = reply_to
