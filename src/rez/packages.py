@@ -316,9 +316,8 @@ class Package(PackageBaseResourceWrapper):
             return self.cachable
 
         if config.default_cachable_per_repository:
-            # TODO: The location of filesystem repository is canonical path,
-            #   so if the path in `default_cachable_per_repository` isn't
-            #   canonical, this may return false value e.g. on Windows.
+            # keys are canonicalised by the config layer (CanonicalPathDict),
+            # so raw paths in the config match repository.location
             value = config.default_cachable_per_repository.get(
                 self.repository.location)
             if value is not None:

@@ -319,6 +319,31 @@ class OptionalDict(Dict):
                 dict)
 
 
+class CanonicalPathDict(Dict):
+    """Dict whose keys are canonicalised paths.
+
+    Users supply raw paths; rez canonicalises the keys itself, so the
+    documented trap of having to canonicalise keys in rezconfig.py (where
+    calling canonical_path can re-enter config loading - see the
+    resolve_links_on_windows read inside canonical_path) is removed.
+
+    Canonicalisation happens in validate(), i.e. on first access of the
+    setting, which is after config files have been fully evaluated - so
+    canonical_path's own setting read is safe here, and uses the real
+    (post-evaluation) configured value. Idempotent for keys that are
+    already canonical.
+    """
+    schema = Or(And(None, Use(lambda x: {})),
+                dict)
+
+    def validate(self, data: Any) -> Any:
+        # lazy import: canonical_path (and therefore filesystem) must not
+        # be imported at config-module scope
+        from rez.utils.filesystem import canonical_path  # noqa: PLC0415
+        data = super().validate(data)
+        return {canonical_path(k): v for k, v in data.items()}
+
+
 class OptionalDictOrDictList(Setting):
     schema = Or(And(None, Use(lambda x: [])),
                 And(dict, Use(lambda x: [x])),
@@ -401,9 +426,9 @@ config_schema = Schema({
     "package_definition_build_python_paths":        PathList,
     "platform_map":                                 OptionalDict,
     "default_relocatable_per_package":              OptionalDict,
-    "default_relocatable_per_repository":           OptionalDict,
+    "default_relocatable_per_repository":           CanonicalPathDict,
     "default_cachable_per_package":                 OptionalDict,
-    "default_cachable_per_repository":              OptionalDict,
+    "default_cachable_per_repository":              CanonicalPathDict,
     "default_cachable":                             OptionalBool,
     "implicit_packages":                            StrList,
     "parent_variables":                             StrList,
@@ -571,6 +596,11 @@ _plugin_config_dict = {
 # -----------------------------------------------------------------------------
 # Config
 # -----------------------------------------------------------------------------
+
+#: True while a Config's config files are being evaluated. Used to detect
+#: re-entrant config access from within a config file's own evaluation.
+_config_load_in_progress = False
+
 
 class Config(object, metaclass=LazyAttributeMeta):
     """Rez configuration settings.
@@ -798,7 +828,36 @@ class Config(object, metaclass=LazyAttributeMeta):
 
     @cached_property
     def _data_without_overrides(self):
-        data, self._sourced_filepaths = _load_config_from_filepaths(self.filepaths)
+        # Re-entrancy guard: evaluating a config file (typically a user's
+        # rezconfig.py) can itself access config settings - directly, or
+        # indirectly via rez APIs that read settings (e.g. canonical_path
+        # on Windows reads resolve_links_on_windows; see #2104). cached
+        # properties only cache on completion, and _load_config_py's
+        # lru_cache only fills after the exec finishes, so a naive nested
+        # access re-executes the config file and recurses until
+        # RecursionError. While a load is in flight, serve the shipped
+        # defaults (the rezconfig module bundled with rez) instead: that
+        # load is lru-cached and static, so it cannot recurse. Anything
+        # cached during the nested evaluation is discarded below, so the
+        # completed load's real values take effect.
+        global _config_load_in_progress
+        if _config_load_in_progress:
+            return _load_config_from_filepaths([get_module_root_config()])[0]
+
+        _config_load_in_progress = True
+        cached_before = set(vars(self))
+        try:
+            data, self._sourced_filepaths = _load_config_from_filepaths(
+                self.filepaths)
+        finally:
+            _config_load_in_progress = False
+
+        # drop values cached during the (possibly nested) evaluation; they
+        # may have been derived from defaults-only data
+        for key in set(vars(self)) - cached_before:
+            if key != "_sourced_filepaths":
+                delattr(self, key)
+
         return data
 
     @cached_property
