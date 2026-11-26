@@ -499,6 +499,18 @@ class Variant(PackageBaseResourceWrapper):
         else:
             return Variant(resource)
 
+    def copy_payload(self, path: str) -> None:
+        """Copy this variant's payload to filesystem path `path`, via the
+        owning repository.
+
+        Args:
+            path (str): Path to copy variant payload data to.
+
+        Raises:
+            `PackageRepositoryError`: If the copy fails.
+        """
+        self.repository.copy_variant_payload(self.resource, path)
+
     @property
     def _non_shortlinked_subpath(self) -> str:
         return self.resource._subpath(ignore_shortlinks=True)
