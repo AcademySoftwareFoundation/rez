@@ -2087,7 +2087,6 @@ class ResolvedContext(object):
                 "testing": self.testing,
                 "request": RequirementsBinding(self._package_requests),
                 "implicits": RequirementsBinding(self.implicit_packages),
-                "ephemerals": EphemeralsBinding(self.resolved_ephemerals or []),
                 "intersects": intersects
             }
 
@@ -2173,6 +2172,7 @@ class ResolvedContext(object):
             executor.bind(k, v)
 
         executor.bind("resolve", VariantsBinding(variant_bindings))
+        executor.bind("ephemerals", EphemeralsBinding(self.resolved_ephemerals or []))
 
         #
         # -- apply each resolved package to the execution context
