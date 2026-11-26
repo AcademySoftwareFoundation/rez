@@ -159,7 +159,13 @@ def command(opts, parser, extra_arg_groups=None) -> None:
     if extra_arg_groups:
         if opts.command:
             parser.error("argument --command: not allowed with arguments after '--'")
-        command = extra_arg_groups[0] or None
+        # Rejoin all arg groups (there's one per '--' the user passed), so that
+        # eg 'rez env foo -- prog -- arg' correctly forwards 'prog -- arg' as
+        # the command, rather than just 'prog' (#1462).
+        command = list(extra_arg_groups[0])
+        for group in extra_arg_groups[1:]:
+            command += ['--'] + group
+        command = command or None
 
     context = None
     request = opts.PKG
