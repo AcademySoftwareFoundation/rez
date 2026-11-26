@@ -265,7 +265,7 @@ class CMD(Shell):
         self._addline("set %s=" % key)
 
     def resetenv(self, key, value, friends=None) -> None:
-        self._addline(self.setenv(key, value))
+        self.setenv(key, value)
 
     def alias(self, key, value) -> None:
         # find doskey, falling back to system paths if not in $PATH. Fall back

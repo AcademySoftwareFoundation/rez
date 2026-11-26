@@ -195,10 +195,9 @@ class TestShells(TestBase, TempdirMixin):
             },
             "csh": {
                 "command": "echo $shell",
-                # csh should usually resolve to csh, but on macOS, it will resolve to tcsh,
-                # at least on GitHub Actions Hosted runners.
-                "assert": lambda x: self.assertEqual(
-                    os.path.basename(x), "csh" if system.platform != "osx" else "tcsh"
+                # Some environments expose csh as tcsh, such as macOS
+                "assert": lambda x: self.assertIn(
+                    os.path.basename(x), ("csh", "tcsh")
                 ),
             },
             "tcsh": {
@@ -602,6 +601,24 @@ class TestShells(TestBase, TempdirMixin):
         # We don't expect any output, the shell should just return with exit
         # code 0.
         _execute_code(_alias_after_path_manipulation)
+
+    @per_available_shell()
+    def test_rex_resetenv_output(self, shell) -> None:
+        """Test that resetenv does not return None."""
+        config.override("default_shell", shell)
+
+        def _rex_resetenv() -> None:
+            resetenv("FOO", "foo")
+            info(env.FOO)
+
+        loc = inspect.getsourcelines(_rex_resetenv)[0][1:]
+        code = textwrap.dedent('\n'.join(loc))
+        r = self._create_context([])
+        p = r.execute_rex_code(code, stdout=subprocess.PIPE)
+
+        out, _ = p.communicate()
+        self.assertEqual(p.returncode, 0)
+        self.assertIsNotNone(out)
 
     @per_available_shell()
     def test_alias_command(self, shell) -> None:
