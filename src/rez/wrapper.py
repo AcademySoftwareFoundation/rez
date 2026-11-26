@@ -248,7 +248,7 @@ class Wrapper(object):
                         col = local if pkg.is_local else None
 
                     label = "(local)" if pkg.is_local else ""
-                    rows.append((name, pkg.path, label))
+                    rows.append((name, pkg.uri, label))
                     colors.append(col)
 
                 _pr = Printer()
