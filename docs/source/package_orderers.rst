@@ -14,6 +14,30 @@ Configuration
 
 Package orderers can be configured in the ``rezconfig.py`` via the :data:`package_orderers` setting.
 
+Environment Variable Configuration
+==================================
+
+Like any rez setting, :data:`package_orderers` can be overridden at runtime via
+the :envvar:`REZ_XXX_JSON` environment variable mechanism documented in
+:doc:`configuring_rez`. The value must be a JSON-encoded list of orderer
+definitions, using the same structure as the :data:`package_orderers` setting:
+
+.. code-block:: bash
+
+   export REZ_PACKAGE_ORDERERS_JSON='[{"type": "per_family", "orderers": [{"packages": ["python"], "type": "version_split", "first_version": "2.7.16"}]}]'
+
+This is useful for configuring orderers with constructor arguments (such as
+timestamp cutoffs or custom version priority ranges) without modifying
+``rezconfig.py``.
+
+.. note::
+
+   The environment variable is read on first access to the configuration.
+   If you need to change the configuration at runtime via the API, call
+   :meth:`PackageOrderList.clear_singleton_cache
+   <rez.package_order.PackageOrderList.clear_singleton_cache>` afterwards so
+   the new configuration takes effect.
+
 Types
 =====
 
@@ -182,15 +206,26 @@ An orderer that does not change the order - a no op.
 
 This orderer is useful in cases where you want to apply some default orderer
 to a set of packages, but may want to explicitly NOT reorder a particular
-package. You would use a :class:`rez.package_order.NullPackageOrder` in a :class:`rez.package_order.PerFamilyOrder` to do this.
+package. You would use ``no_order`` in ``per_family`` to do this.
 
 
 Custom orderers
 ===============
 
-It is possible to create custom orderers using the API. This can be achieved
-by subclassing :class:`rez.package_order.PackageOrder` and implementing some mandatory
-methods. Once that's done, you need to register the orderer using :func:`rez.package_order.register_orderer`.
+It is possible to create custom orderers using the API. The preferred approach
+is to create a plugin in ``rezplugins/package_order/``. Alternatively, you can
+subclass :class:`rez.package_order.PackageOrder` and register the orderer using
+:func:`rez.package_order.register_orderer` (API-based registration).
+
+.. note::
+
+   The plugin system is preferred for persistent, facility-wide orderers.
+   Use ``register_orderer()`` for dynamic or programmatic registration.
+
+.. seealso::
+
+   For plugin-based orderer examples, see the built-in orderers in
+   ``src/rezplugins/package_order/``.
 
 .. note::
 
@@ -211,7 +246,7 @@ methods. Once that's done, you need to register the orderer using :func:`rez.pac
        name = "my_orderer"
 
        def __init__(self, custom_arg: str, **kwargs):
-           super().__init__(self, **kwargs)
+           super().__init__(**kwargs)
            self.custom_arg = custom_arg
 
        def sort_key_implementation(self, package_name: str, version: Version):
@@ -223,7 +258,7 @@ methods. Once that's done, you need to register the orderer using :func:`rez.pac
        def __eq__(self, other):
            pass
 
-       def to_pod(self, other):
+       def to_pod(self):
            pass
 
        @classmethod
