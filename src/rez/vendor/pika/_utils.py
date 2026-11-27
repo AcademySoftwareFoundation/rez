@@ -1,0 +1,176 @@
+"""Internal utility helpers for platform and socket compatibility."""
+
+from __future__ import annotations
+
+import errno
+import os
+import re
+import socket
+import sys
+import time
+from typing import TYPE_CHECKING
+
+# `override` is a type-check-time marker (PEP 698); it has no runtime effect
+# beyond returning the function unchanged. It landed in the stdlib in 3.12.
+# To keep pika dependency-free we do NOT require typing_extensions at runtime:
+# type checkers (which always provide typing_extensions) see the real decorator
+# via the TYPE_CHECKING branch, while older runtimes use a no-op fallback.
+# Re-exported across pika (declared in __all__ below).
+if sys.version_info >= (3, 12):
+    from typing import override
+elif TYPE_CHECKING:
+    from typing_extensions import override
+else:
+
+    def override(func):
+        return func
+
+
+# `Protocol` and `runtime_checkable` (PEP 544) landed in the stdlib in 3.8,
+# while pika still supports 3.7. Same dependency-free approach as `override`
+# above: type checkers run at 3.10 or later and see the real objects, while a
+# 3.7 runtime falls back to a plain base class and a no-op decorator. Protocols
+# in pika are only ever subclassed explicitly, never instantiated or passed to
+# `isinstance`, so the nominal fallback behaves identically at runtime.
+# Re-exported across pika (declared in __all__ below).
+if sys.version_info >= (3, 8):
+    from typing import Protocol, runtime_checkable
+elif TYPE_CHECKING:
+    from typing_extensions import Protocol, runtime_checkable
+else:
+    Protocol = object
+
+    def runtime_checkable(cls):
+        return cls
+
+
+__all__ = ['Protocol', 'override', 'runtime_checkable']
+
+RE_NUM = re.compile(r'(\d+).+')
+
+ON_LINUX = sys.platform.startswith('linux')
+ON_OSX = sys.platform == 'darwin'
+ON_WINDOWS = sys.platform == 'win32'
+
+try:
+    SOL_TCP = socket.SOL_TCP
+except AttributeError:
+    SOL_TCP = socket.IPPROTO_TCP
+
+# Same value on POSIX, but on Windows EWOULDBLOCK is WSAEWOULDBLOCK (10035),
+# so both have to be checked.
+TRY_IO_AGAIN_SOCK_ERROR_CODES = (errno.EAGAIN, errno.EWOULDBLOCK)
+
+HAVE_SIGNAL = os.name == 'posix'
+
+_LOCALHOST = '127.0.0.1'
+_LOCALHOST_V6 = '::1'
+
+
+def time_now() -> float:
+    """Returns monotonic time."""
+    return time.monotonic()
+
+
+def as_bytes(value: str | bytes, name: str = 'value') -> bytes:
+    """
+    Returns value as bytes.
+
+    :param value: value to convert
+    :param name: what *value* is, for the error message
+    :raises TypeError: if *value* is not `str` or `bytes`
+    """
+    if isinstance(value, bytes):
+        return value
+    if isinstance(value, str):
+        return value.encode('UTF-8')
+    raise TypeError(f'{name} must be bytes or str, not {type(value).__name__}')
+
+
+def to_digit(value: str) -> int:
+    """
+    Returns value as an integer.
+
+    :param value: string containing digits
+    """
+    if value.isdigit():
+        return int(value)
+    match = RE_NUM.match(value)
+    return int(match.groups()[0]) if match else 0
+
+
+def get_linux_version(release_str: str) -> tuple[int, ...]:
+    """
+    Gets linux version.
+
+    :param release_str: kernel release string
+    """
+    ver_str = release_str.split('-', 1)[0]
+    return tuple(map(to_digit, ver_str.split('.', 3)[:3]))
+
+
+LINUX_VERSION = None
+if ON_LINUX:
+    import platform
+    LINUX_VERSION = get_linux_version(platform.release())
+
+
+def nonblocking_socketpair(
+        family: int = socket.AF_INET,
+        socket_type: int = socket.SOCK_STREAM,
+        proto: int = 0) -> tuple[socket.socket, socket.socket]:
+    """
+    Non-blocking socket pair for use with pika's I/O loop.
+
+    Returns a pair of sockets in the manner of socketpair with the additional feature that they will
+    be non-blocking.
+
+    :param family: socket family (default AF_INET)
+    :param socket_type: socket type (default SOCK_STREAM)
+    :param proto: socket protocol (default 0)
+    :returns: a pair of connected non-blocking sockets
+    :raises ConnectionError: if another connection reached the listening socket first
+    """
+    if family == socket.AF_INET:
+        host = _LOCALHOST
+    elif family == socket.AF_INET6:
+        host = _LOCALHOST_V6
+    else:
+        raise ValueError('Only AF_INET and AF_INET6 socket address families '
+                         'are supported')
+    if socket_type != socket.SOCK_STREAM:
+        raise ValueError('Only SOCK_STREAM socket socket_type is supported')
+    if proto != 0:
+        raise ValueError('Only protocol zero is supported')
+
+    lsock = socket.socket(family, socket_type, proto)
+    try:
+        lsock.bind((host, 0))
+        lsock.listen(min(socket.SOMAXCONN, 128))
+        # On IPv6, ignore flow_info and scope_id
+        addr, port = lsock.getsockname()[:2]
+        csock = socket.socket(family, socket_type, proto)
+        try:
+            csock.connect((addr, port))
+            ssock, _ = lsock.accept()
+        except Exception:
+            csock.close()
+            raise
+        # Reject a connection from anything else that reached the listener
+        # first, as CPython's fallback socketpair does since CVE-2024-3219
+        # (#1820). Checked before lsock closes, which resets csock if queued.
+        try:
+            if (ssock.getsockname() != csock.getpeername() or
+                    csock.getsockname() != ssock.getpeername()):
+                raise ConnectionError('Unexpected peer connection')
+        except Exception:
+            ssock.close()
+            csock.close()
+            raise
+    finally:
+        lsock.close()
+
+    csock.setblocking(False)
+    ssock.setblocking(False)
+
+    return ssock, csock
