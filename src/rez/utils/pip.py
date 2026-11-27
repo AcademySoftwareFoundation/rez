@@ -13,7 +13,6 @@ from pathlib import Path
 
 from rez.vendor.packaging.version import (
     parse as packaging_parse,
-    LegacyVersion as packaging_LegacyVersion,
     InvalidVersion as packaging_InvalidVersion
 )
 from rez.vendor.packaging.requirements import Requirement as packaging_Requirement
@@ -86,16 +85,16 @@ def pip_to_rez_version(dist_version, allow_legacy: bool = True):
         https://packaging.pypa.io/en/latest/version/
 
     """
-    pkg_version = packaging_parse(dist_version)
-
-    if isinstance(pkg_version, packaging_LegacyVersion):
+    try:
+        pkg_version = packaging_parse(dist_version)
+    except packaging_InvalidVersion:
         if allow_legacy:
             print_warning(
                 "Invalid PEP440 version detected: %r. "
-                "Reverting to legacy mode." % pkg_version
+                "Reverting to legacy mode." % dist_version
             )
             # this will always be the entire version string
-            return pkg_version.base_version.lower()
+            return dist_version.lower()
         else:
             raise packaging_InvalidVersion(
                 "Version: {} is not compatible with PEP440.".format(dist_version)
