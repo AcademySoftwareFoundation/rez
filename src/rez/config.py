@@ -14,7 +14,7 @@ from rez.utils.scope import scoped_format
 from rez.exceptions import ConfigurationError
 from rez import module_root_path
 from rez.system import system
-from rez.vendor.schema.schema import Schema, SchemaError, And, Or, Use
+from rez.vendor.schema import Schema, SchemaError, And, Or, Use
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 import rez.deprecations

@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from rez.vendor.schema.schema import SchemaError
+from rez.vendor.schema import SchemaError
 from rez.package_repository import package_repository_manager
 from rez.package_resources import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema, \

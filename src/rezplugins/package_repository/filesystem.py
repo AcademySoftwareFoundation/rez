@@ -33,7 +33,7 @@ from rez.utils.filesystem import make_path_writable, \
 from rez.utils.platform_ import platform_
 from rez.utils.yaml import load_yaml
 from rez.config import config
-from rez.vendor.schema.schema import Schema, Optional, And, Use, Or
+from rez.vendor.schema import Schema, Optional, And, Use, Or
 from rez.version import Version, VersionRange
 
 from typing import Any, Iterator, Iterable, TYPE_CHECKING

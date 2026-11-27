@@ -11,7 +11,7 @@ from email.mime.text import MIMEText
 from rez.utils.logging_ import print_warning, print_error
 from rez.utils.yaml import load_yaml
 from rez.utils.scope import scoped_formatter
-from rez.vendor.schema.schema import Or
+from rez.vendor.schema import Or
 import os.path
 import smtplib
 

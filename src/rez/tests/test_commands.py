@@ -11,7 +11,7 @@ from rez.resolved_context import ResolvedContext
 from rez.utils.filesystem import canonical_path
 import unittest
 from rez.tests.util import TestBase
-from rez.vendor.schema.schema import SchemaError
+from rez.vendor.schema import SchemaError
 import os
 import logging
 
