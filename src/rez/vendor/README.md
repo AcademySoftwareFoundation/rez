@@ -128,7 +128,7 @@ https://github.com/harlowja/fasteners
 <tr><td>
 memcache (python-memcached)
 </td><td>
-1.59 (Dec 15, 2017)
+1.62 (Jan 14, 2024)
 </td><td>
 PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
 </td><td>
@@ -137,7 +137,7 @@ We could try to move to a more maintained package like pymemcache from
 pinterest. NOTE: A port to redis may be a better option, people are more
 familiar with it and it already has a good python client that supports conn
 pooling.
-Single-character syntax patch on imports to resolve SyntaxWarning on python-3.13+
+Patched get_stats() for RESET (#1563). Updated (Nov 2026).
 </td></tr>
 
 <!-- ######################################################### -->
